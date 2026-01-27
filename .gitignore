@@ -1,0 +1,20 @@
+# Dependencies (too large to upload, use 'npm install' instead)
+node_modules/
+
+# Environment Variables (Security risk if shared!)
+.env
+.env.local
+.env.production
+
+# Build folders (generated code)
+dist/
+build/
+out/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+
+# Operating System files
+.DS_Store
+Thumbs.db
