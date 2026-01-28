@@ -1,4 +1,4 @@
-import Restaurant from "../models/restaurant.model.js";
+import Restaurant from "../models/restaurantModel.js";
 
 export const getRestaurants = async (_, res) => {
   const restaurants = await Restaurant.find();
