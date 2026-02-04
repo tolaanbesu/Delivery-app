@@ -57,11 +57,20 @@ const CartOverlay = ({ cartItemsData, restaurant, cart, updateQuantity, setIsCar
           </div>
         </div>
         <button 
-          onClick={() => navigate('/checkout')}
-          className="w-full bg-[#F57C1F] py-4 rounded-xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg"
-        >
-          Proceed to Checkout
-        </button>
+        onClick={() => navigate('/checkout', { 
+          state: { 
+            totalPrice, 
+            cartItemsData, 
+            cart,
+            restaurantName: restaurant.name,
+            // ADD THIS LINE:
+            user: { name: "Alex Rivera", phone: "+1(555) 0123-4567", email: "alex.design@example.com" }
+          } 
+        })}
+        className="w-full bg-[#F57C1F] py-4 rounded-xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg"
+      >
+        Proceed to Checkout
+      </button>
       </div>
     </div>
   );
