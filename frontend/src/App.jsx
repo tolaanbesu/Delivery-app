@@ -27,8 +27,9 @@ const AppContent = () => {
   
   // Logic to hide the navbar on specific routes
   const hideNavbar = location.pathname.includes('/restaurant/') || 
-                     location.pathname === '/login' || 
-                     location.pathname === '/signup';
+                   location.pathname === '/checkout' || 
+                   location.pathname === '/login' || 
+                   location.pathname === '/signup';
 
   return (
     <Layout>
