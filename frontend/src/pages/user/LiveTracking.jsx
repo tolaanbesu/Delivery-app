@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import { FiChevronLeft, FiMessageSquare, FiPhone, FiTruck, FiCheckCircle, FiCoffee, FiHome, FiHelpCircle, FiX, FiMapPin } from 'react-icons/fi';
+import { FiChevronLeft, FiMessageSquare, FiPhone, FiTruck, FiCheckCircle, FiCoffee, FiHome, FiHelpCircle, FiX, FiMapPin, FiCopy, FiCheck } from 'react-icons/fi';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -19,17 +19,16 @@ const LiveTracking = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showSupport, setShowSupport] = useState(false);
+  const [copied, setCopied] = useState(false);
   
-  // 1. DATA ACCEPTANCE
   const orderData = useMemo(() => {
     return location.state?.orderDetails || {
       restaurantName: "Express Eats",
       deliveryPosition: { lat: 9.03, lng: 38.74 },
-      user: { name: "Guest", phone: "0911000000" } // Fallback phone
+      user: { name: "Guest", phone: "0911000000" }
     };
   }, [location.state]);
 
-  // 2. STABLE TIME LOGIC
   const [times] = useState(() => {
     const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const now = new Date();
@@ -40,7 +39,6 @@ const LiveTracking = () => {
     };
   });
 
-  // 3. INTERACTIVE STATE
   const [orderStatus] = useState(2); 
 
   const timelineSteps = [
@@ -50,13 +48,19 @@ const LiveTracking = () => {
     { id: 3, title: "Estimated Arrival", time: times.arrival, icon: <FiHome />, status: "DONE" },
   ];
 
-  // REAL REDIRECT LOGIC
   const handleCall = () => {
     window.location.href = `tel:${orderData.user.phone}`;
   };
 
   const handleMessage = () => {
     window.location.href = `sms:${orderData.user.phone}?body=Hello, I am checking on my order from ${orderData.restaurantName}.`;
+  };
+
+  const copyAddress = () => {
+    const address = "123 Culinary Drive, Suite 400, Addis Ababa, Ethiopia";
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -167,11 +171,16 @@ const LiveTracking = () => {
                 <FiMapPin className="text-[#F57C1F]" size={28} />
               </div>
               <h2 className="text-xl font-black text-white mb-2">Office Headquarters</h2>
-              <p className="text-[#8B7E6F] text-sm leading-relaxed mb-6">
-                123 Culinary Drive, Suite 400<br/>
-                Addis Ababa, Ethiopia
-              </p>
-              <div className="w-full h-[1px] bg-white/5 mb-6" />
+              <div className="flex items-center gap-2 group cursor-pointer" onClick={copyAddress}>
+                <p className="text-[#8B7E6F] text-sm leading-relaxed">
+                  123 Culinary Drive, Suite 400<br/>
+                  Addis Ababa, Ethiopia
+                </p>
+                <button className="text-[#F57C1F] opacity-50 group-hover:opacity-100 transition-opacity">
+                  {copied ? <FiCheck /> : <FiCopy />}
+                </button>
+              </div>
+              <div className="w-full h-[1px] bg-white/5 my-6" />
               <div className="space-y-4 w-full">
                 <div className="flex justify-between text-xs">
                   <span className="text-[#8B7E6F] font-bold uppercase">Customer Line</span>
