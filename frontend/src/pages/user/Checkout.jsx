@@ -1,67 +1,264 @@
-import React from 'react';
-import { FiChevronLeft, FiInfo, FiCreditCard } from 'react-icons/fi';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FiChevronLeft, FiInfo, FiCreditCard, FiMail, FiUser, FiCamera, FiMapPin, FiSearch } from 'react-icons/fi';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Leaflet marker fix
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+const DefaultIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+
+// Helper component to move map view when position state changes
+function ChangeView({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
 
 const Checkout = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const cartData = location.state || {
+    totalPrice: 0,
+    cartItemsData: [],
+    cart: {},
+    restaurantName: "Restaurant",
+    user: { 
+      name: "Guest User", 
+      phone: "No phone provided", 
+      email: "No email provided" 
+    } 
+  };
+
+  const subtotal = cartData.totalPrice || 0;
+  const deliveryFee = 2.50;
+  const tax = subtotal * 0.05;
+  const grandTotal = subtotal + deliveryFee + tax;
+  const itemsCount = Object.values(cartData.cart || {}).reduce((a, b) => a + b, 0);
+
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [formData, setFormData] = useState({
+    cardNumber: '', expiry: '', cvv: '', phone: '', screenshot: null, addressText: ''
+  });
+  
+  const [position, setPosition] = useState({ lat: 9.03, lng: 38.74 });
+
+  const searchAddress = async () => {
+    if (!formData.addressText) return;
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.addressText)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setPosition({ lat: parseFloat(lat), lng: parseFloat(lon) });
+      }
+    } catch (error) {
+      console.error("Search failed", error);
+    }
+  };
+
+  function LocationMarker() {
+    useMapEvents({
+      click(e) {
+        setPosition(e.latlng);
+      },
+    });
+    
+    const markerRef = useRef(null);
+    const eventHandlers = useMemo(() => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          setPosition(marker.getLatLng());
+        }
+      },
+    }), []);
+
+    return (
+      <Marker
+        draggable={true}
+        eventHandlers={eventHandlers}
+        position={position}
+        icon={DefaultIcon}
+        ref={markerRef}
+      />
+    );
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files[0]) {
+      setFormData(prev => ({ ...prev, screenshot: e.target.files[0] }));
+    }
+  };
+
   return (
-    <div className="bg-[#1C160E] text-[#EDE8E2] min-h-screen p-6 pb-40">
-      <div className="flex justify-between items-center mb-8">
-        <FiChevronLeft className="text-xl" />
-        <h1 className="text-xl font-bold">Checkout</h1>
-        <FiInfo className="text-xl" />
+    <div className="absolute inset-0 flex flex-col bg-[#1C160E] text-[#EDE8E2] font-sans overflow-hidden">
+      
+      <header className="px-6 pt-8 pb-4 flex justify-between items-center bg-[#1C160E] z-20">
+        <button onClick={() => navigate(-1)} className="text-2xl active:scale-95"><FiChevronLeft /></button>
+        <div className="text-center">
+          <h1 className="text-lg font-bold">Checkout</h1>
+          <p className="text-[10px] text-[#8B7E6F]">{cartData?.restaurantName}</p>
+        </div>
+        <FiInfo className="text-xl text-[#8B7E6F]" />
+      </header>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar px-6 space-y-6 pb-6">
+        
+        <div className="flex justify-center gap-2 mb-2">
+          <div className="w-2 h-2 rounded-full bg-[#3D2C1E]" />
+          <div className="w-10 h-2 rounded-full bg-[#F57C1F]" />
+          <div className="w-2 h-2 rounded-full bg-[#3D2C1E]" />
+        </div>
+
+        <section className="space-y-3">
+          <div className="flex justify-between items-end">
+            <h2 className="text-md font-bold">Delivery Location</h2>
+            <span className="text-[10px] text-[#F57C1F] flex items-center gap-1 font-bold italic">
+              <FiMapPin /> Tap/Drag/Type to change
+            </span>
+          </div>
+
+          <div className="relative group">
+            <input 
+              name="addressText"
+              value={formData.addressText}
+              onChange={handleInputChange}
+              onKeyDown={(e) => e.key === 'Enter' && searchAddress()}
+              placeholder="Enter your street or area..."
+              className="w-full bg-[#2A1E14] p-4 pr-12 rounded-2xl text-xs border border-white/5 outline-none focus:border-[#F57C1F]/50 transition-all"
+            />
+            <button 
+              onClick={searchAddress}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F57C1F] p-2"
+            >
+              <FiSearch size={18} />
+            </button>
+          </div>
+
+          <div className="bg-[#2A1E14] rounded-[2rem] overflow-hidden border border-white/5 h-48 w-full shadow-lg relative">
+            <MapContainer 
+              center={[position.lat, position.lng]} 
+              zoom={14} 
+              zoomControl={false} 
+              style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%)' }}
+            >
+              <ChangeView center={[position.lat, position.lng]} />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <LocationMarker />
+            </MapContainer>
+            <div className="absolute bottom-3 left-3 bg-[#1C160E]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 z-[1000]">
+               <p className="text-[9px] font-mono text-[#8B7E6F]">
+                 {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
+               </p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-md font-bold mb-4">Contact Info</h2>
+          <div className="bg-[#2A1E14] rounded-[2.5rem] p-6 space-y-4 border border-white/5">
+            <div className="flex items-center gap-4">
+              <FiUser className="text-[#F57C1F]" />
+              <div>
+                <p className="font-bold text-xs">{cartData.user?.name || "Guest"}</p>
+                <p className="text-[10px] text-[#8B7E6F]">{cartData.user?.phone || "N/A"}</p>
+              </div>
+            </div>
+            <div className="h-[1px] bg-white/5" />
+            <div className="flex items-center gap-4">
+              <FiMail className="text-[#F57C1F]" />
+              <p className="font-bold text-[11px]">{cartData.user?.email || "N/A"}</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-md font-bold mb-4">Payment Method</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <button onClick={() => setPaymentMethod('card')} className={`flex flex-col items-center p-5 rounded-[2rem] border-2 transition-all ${paymentMethod === 'card' ? 'border-[#F57C1F] bg-[#2A1E14]' : 'border-transparent bg-[#2A1E14]/50 opacity-40'}`}>
+              <FiCreditCard className="text-xl mb-2" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Credit Card</span>
+            </button>
+            <button onClick={() => setPaymentMethod('telebirr')} className={`flex flex-col items-center p-5 rounded-[2rem] border-2 transition-all ${paymentMethod === 'telebirr' ? 'border-[#F57C1F] bg-[#2A1E14]' : 'border-transparent bg-[#2A1E14]/50 opacity-40'}`}>
+              <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center text-[10px] font-black italic mb-2 text-white">tb</div>
+              <span className="text-[10px] font-bold uppercase tracking-widest">telebirr</span>
+            </button>
+          </div>
+        </section>
+
+        {paymentMethod === 'card' ? (
+          <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
+            <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest">Card Number</p>
+            <input name="cardNumber" value={formData.cardNumber} onChange={handleInputChange} placeholder="**** **** **** 4242" className="w-full bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
+            <div className="grid grid-cols-2 gap-4">
+              <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest">Expire Date</p>
+              <input name="expiry" value={formData.expiry} onChange={handleInputChange} placeholder="MM/YY" className="bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
+              <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest">CVV</p>
+              <input name="cvv" type="password" value={formData.cvv} onChange={handleInputChange} placeholder="***" className="bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
+            <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest">telebirr Phone</p>
+            <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="09..." className="w-full bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
+            <label className="flex flex-col items-center justify-center bg-[#1C160E] p-5 rounded-xl border border-dashed border-[#3D2C1E] cursor-pointer">
+              <FiCamera className="text-[#F57C1F] mb-2" />
+              <span className="text-[10px] text-gray-500 text-center uppercase">{formData.screenshot ? formData.screenshot.name : "Tap to upload screenshot"}</span>
+              <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+            </label>
+          </div>
+        )}
+
+        <section className="bg-[#2A1E14] rounded-[2.5rem] p-6 space-y-3 border border-white/5 mb-4 shadow-sm">
+          <div className="flex justify-between text-xs text-[#8B7E6F]">
+            <span>Subtotal ({itemsCount} items)</span>
+            <span className="text-white font-bold">${subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-xs text-[#8B7E6F]">
+            <span>Delivery Fee</span>
+            <span className="text-white font-bold">${deliveryFee.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-xs text-[#8B7E6F]">
+            <span>Service Tax (5%)</span>
+            <span className="text-white font-bold">${tax.toFixed(2)}</span>
+          </div>
+        </section>
       </div>
 
-      {/* Address */}
-      <section className="mb-8">
-        <h2 className="font-bold mb-4">Delivery Address</h2>
-        <div className="bg-[#2A1E14] rounded-3xl p-5 flex gap-4">
-          <div className="flex-1">
-            <p className="font-bold mb-1">Home</p>
-            <p className="text-xs text-gray-500 leading-relaxed">123 UI Designer St, San Francisco, CA 94107</p>
-            <button className="mt-4 bg-[#3D2C1E] px-4 py-1.5 rounded-lg text-xs font-bold border border-[#4A3728]">Change</button>
+      <footer className="bg-[#1C160E] p-6 border-t border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] z-20">
+        <div className="flex justify-between items-center mb-6 px-1">
+          <div>
+            <p className="text-[9px] text-[#8B7E6F] font-black uppercase tracking-widest mb-1">Estimated Arrival</p>
+            <p className="font-black text-white text-sm">25 - 35 mins</p>
           </div>
-          <div className="w-24 h-24 rounded-2xl bg-blue-900 overflow-hidden">
-             <img src="https://maps.googleapis.com/maps/api/staticmap?center=San+Francisco&zoom=13&size=200x200" className="w-full h-full object-cover" alt="map" />
+          <div className="text-right">
+            <p className="text-[9px] text-[#8B7E6F] font-black uppercase tracking-widest mb-1">Total Pay</p>
+            <p className="font-black text-[#F57C1F] text-lg">${grandTotal.toFixed(2)}</p>
           </div>
         </div>
-      </section>
-
-      {/* Payment Selector */}
-      <section className="mb-8">
-         <h2 className="font-bold mb-4">Payment Method</h2>
-         <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#2A1E14] border-2 border-[#F57C1F] rounded-2xl p-4 flex flex-col items-center">
-                <FiCreditCard className="text-[#F57C1F] text-2xl mb-2" />
-                <span className="text-sm font-bold">Credit Card</span>
-            </div>
-            <div className="bg-[#2A1E14] border border-[#3D2C1E] rounded-2xl p-4 flex flex-col items-center opacity-50">
-                <span className="text-sm font-bold">PayPal</span>
-            </div>
-         </div>
-      </section>
-
-      {/* Order Summary */}
-      <section className="bg-[#2A1E14] rounded-3xl p-6 space-y-3">
-         <div className="flex justify-between text-sm"><span className="text-gray-400">Subtotal (3 items)</span><span>$34.50</span></div>
-         <div className="flex justify-between text-sm"><span className="text-gray-400">Delivery Fee</span><span className="text-green-500 font-bold uppercase text-[10px]">Free</span></div>
-         <div className="flex justify-between text-sm"><span className="text-gray-400">Service Tax (5%)</span><span>$1.72</span></div>
-      </section>
-
-      {/* Floating Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#1C160E] p-6 border-t border-[#2A1E14]">
-         <div className="flex justify-between text-xs mb-4">
-            <div>
-                <p className="text-gray-500">Estimated Arrival</p>
-                <p className="font-bold">25 - 35 mins</p>
-            </div>
-            <div className="text-right">
-                <p className="text-gray-500">Pay with</p>
-                <p className="font-bold">VISA • 4242</p>
-            </div>
-         </div>
-         <button className="w-full bg-[#F57C1F] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-lg">
-           Place Order • $36.22 <span className="text-xl">→</span>
-         </button>
-      </div>
+        <button 
+          onClick={() => alert("Order Placed!")}
+          className="w-full bg-[#F57C1F] py-5 rounded-[1.5rem] flex justify-center items-center gap-2 font-black text-white uppercase text-sm shadow-xl active:scale-95 transition-transform"
+        >
+          Place Order →
+        </button>
+      </footer>
     </div>
   );
 };
