@@ -5,6 +5,9 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
+// --- DYNAMIC DATA IMPORT ---
+import { userData } from '../../utils/data'; 
+
 // Leaflet marker fix
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -15,7 +18,6 @@ const DefaultIcon = L.icon({
   iconAnchor: [12, 41]
 });
 
-// Helper component to move map view when position state changes
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -28,17 +30,19 @@ const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const cartData = location.state || {
-    totalPrice: 0,
-    cartItemsData: [],
-    cart: {},
-    restaurantName: "Restaurant",
-    user: { 
-      name: "Guest User", 
-      phone: "No phone provided", 
-      email: "No email provided" 
-    } 
-  };
+  // --- DYNAMIC USER SYNC ---
+  // We prioritize the global userData object to ensure it's always the "Real" logged-in person
+  const currentUser = userData; 
+
+  const cartData = useMemo(() => {
+    const state = location.state || {};
+    return {
+      totalPrice: state.totalPrice || 0,
+      cartItemsData: state.cartItemsData || [],
+      cart: state.cart || {},
+      restaurantName: state.restaurantName || "Restaurant"
+    };
+  }, [location.state]);
 
   const subtotal = cartData.totalPrice || 0;
   const deliveryFee = 2.50;
@@ -69,18 +73,14 @@ const Checkout = () => {
 
   function LocationMarker() {
     useMapEvents({
-      click(e) {
-        setPosition(e.latlng);
-      },
+      click(e) { setPosition(e.latlng); },
     });
     
     const markerRef = useRef(null);
     const eventHandlers = useMemo(() => ({
       dragend() {
         const marker = markerRef.current;
-        if (marker != null) {
-          setPosition(marker.getLatLng());
-        }
+        if (marker != null) { setPosition(marker.getLatLng()); }
       },
     }), []);
 
@@ -106,7 +106,6 @@ const Checkout = () => {
     }
   };
 
-  // --- NEW VALIDATION LOGIC ---
   const validateAndPlaceOrder = () => {
     if (!formData.addressText.trim()) {
       alert("Delivery address is required.");
@@ -125,12 +124,11 @@ const Checkout = () => {
       }
     }
 
-    // If all checks pass
     alert("Order Placed Successfully!");
     
     const orderDetails = {
-      restaurantName: cartData?.restaurantName || "Restaurant",
-      user: cartData?.user || { name: "Guest User", phone: "N/A" },
+      restaurantName: cartData.restaurantName,
+      user: currentUser, // Sending the real user data to tracking
       deliveryPosition: position, 
       grandTotal: grandTotal,
       itemsCount: itemsCount
@@ -149,82 +147,76 @@ const Checkout = () => {
         <button onClick={() => navigate(-1)} className="text-2xl active:scale-95"><FiChevronLeft /></button>
         <div className="text-center">
           <h1 className="text-lg font-bold">Checkout</h1>
-          <p className="text-[10px] text-[#8B7E6F]">{cartData?.restaurantName}</p>
+          <p className="text-[10px] text-[#8B7E6F]">{cartData.restaurantName}</p>
         </div>
         <FiInfo className="text-xl text-[#8B7E6F]" />
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 space-y-6 pb-6">
         
+        {/* Progress Bar */}
         <div className="flex justify-center gap-2 mb-2">
           <div className="w-2 h-2 rounded-full bg-[#3D2C1E]" />
           <div className="w-10 h-2 rounded-full bg-[#F57C1F]" />
           <div className="w-2 h-2 rounded-full bg-[#3D2C1E]" />
         </div>
 
+        {/* Map Section */}
         <section className="space-y-3">
           <div className="flex justify-between items-end">
             <h2 className="text-md font-bold">Delivery Location</h2>
             <span className="text-[10px] text-[#F57C1F] flex items-center gap-1 font-bold italic">
-              <FiMapPin /> Tap/Drag/Type to change
+              <FiMapPin /> Change Address
             </span>
           </div>
 
           <div className="relative group">
             <input 
               name="addressText"
-              required
               value={formData.addressText}
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && searchAddress()}
-              placeholder="Enter your street or area..."
+              placeholder="Search your location..."
               className="w-full bg-[#2A1E14] p-4 pr-12 rounded-2xl text-xs border border-white/5 outline-none focus:border-[#F57C1F]/50 transition-all"
             />
-            <button 
-              onClick={searchAddress}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F57C1F] p-2"
-            >
+            <button onClick={searchAddress} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F57C1F] p-2">
               <FiSearch size={18} />
             </button>
           </div>
 
-          <div className="bg-[#2A1E14] rounded-[2rem] overflow-hidden border border-white/5 h-48 w-full shadow-lg relative">
-            <MapContainer 
-              center={[position.lat, position.lng]} 
-              zoom={14} 
-              zoomControl={false} 
-              style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%)' }}
-            >
+          <div className="bg-[#2A1E14] rounded-[2rem] overflow-hidden border border-white/5 h-44 w-full relative">
+            <MapContainer center={[position.lat, position.lng]} zoom={14} zoomControl={false} style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%)' }}>
               <ChangeView center={[position.lat, position.lng]} />
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <LocationMarker />
             </MapContainer>
-            <div className="absolute bottom-3 left-3 bg-[#1C160E]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 z-[1000]">
-               <p className="text-[9px] font-mono text-[#8B7E6F]">
-                 {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
-               </p>
-            </div>
           </div>
         </section>
 
+        {/* DYNAMIC CONTACT INFO SECTION */}
         <section>
-          <h2 className="text-md font-bold mb-4">Contact Info</h2>
-          <div className="bg-[#2A1E14] rounded-[2.5rem] p-6 space-y-4 border border-white/5">
+          <h2 className="text-md font-bold mb-4">Contact Details</h2>
+          <div className="bg-[#2A1E14] rounded-[2.5rem] p-6 space-y-4 border border-white/5 shadow-inner">
             <div className="flex items-center gap-4">
-              <FiUser className="text-[#F57C1F]" />
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#F57C1F]/30">
+                <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
+              </div>
               <div>
-                <p className="font-bold text-xs">{cartData.user?.name || "Guest"}</p>
-                <p className="text-[10px] text-[#8B7E6F]">{cartData.user?.phone || "N/A"}</p>
+                <p className="font-black text-xs text-white uppercase tracking-tight">{currentUser.name}</p>
+                <p className="text-[10px] text-[#8B7E6F] font-bold">{currentUser.phone}</p>
               </div>
             </div>
-            <div className="h-[1px] bg-white/5" />
+            <div className="h-[1px] bg-white/5 w-full" />
             <div className="flex items-center gap-4">
-              <FiMail className="text-[#F57C1F]" />
-              <p className="font-bold text-[11px]">{cartData.user?.email || "N/A"}</p>
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                <FiMail className="text-[#F57C1F]" />
+              </div>
+              <p className="font-bold text-[11px] text-[#8B7E6F]">{currentUser.email}</p>
             </div>
           </div>
         </section>
 
+        {/* Payment and Totals... (rest of the UI remains the same) */}
         <section>
           <h2 className="text-md font-bold mb-4">Payment Method</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -239,32 +231,27 @@ const Checkout = () => {
           </div>
         </section>
 
-        {paymentMethod === 'card' ? (
-          <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
-            <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest">Card Number</p>
-            <input required name="cardNumber" value={formData.cardNumber} onChange={handleInputChange} placeholder="**** **** **** 4242" className="w-full bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <div>
-                <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest mb-2">Expire Date</p>
-                <input required name="expiry" value={formData.expiry} onChange={handleInputChange} placeholder="MM/YY" className="w-full bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest mb-2">CVV</p>
-                <input required name="cvv" type="password" value={formData.cvv} onChange={handleInputChange} placeholder="***" className="w-full bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
-            <p className="text-[9px] font-bold text-[#8B7E6F] uppercase tracking-widest">telebirr Phone</p>
-            <input required name="phone" value={formData.phone} onChange={handleInputChange} placeholder="09..." className="w-full bg-[#1C160E] p-3 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F]"/>
-            <label className="flex flex-col items-center justify-center bg-[#1C160E] p-5 rounded-xl border border-dashed border-[#3D2C1E] cursor-pointer">
-              <FiCamera className="text-[#F57C1F] mb-2" />
-              <span className="text-[10px] text-gray-500 text-center uppercase">{formData.screenshot ? formData.screenshot.name : "Tap to upload screenshot"}</span>
-              <input type="file" required className="hidden" onChange={handleFileChange} accept="image/*" />
-            </label>
-          </div>
-        )}
+        {/* Conditional Payment Fields */}
+        <div className="pb-4">
+           {paymentMethod === 'card' ? (
+             <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
+                <input required name="cardNumber" value={formData.cardNumber} onChange={handleInputChange} placeholder="Card Number" className="w-full bg-[#1C160E] p-4 rounded-xl text-xs outline-none border border-transparent focus:border-[#F57C1F] text-white"/>
+                <div className="grid grid-cols-2 gap-4">
+                   <input required name="expiry" value={formData.expiry} onChange={handleInputChange} placeholder="MM/YY" className="bg-[#1C160E] p-4 rounded-xl text-xs outline-none text-white"/>
+                   <input required name="cvv" type="password" value={formData.cvv} onChange={handleInputChange} placeholder="CVV" className="bg-[#1C160E] p-4 rounded-xl text-xs outline-none text-white"/>
+                </div>
+             </div>
+           ) : (
+             <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
+                <input required name="phone" value={formData.phone} onChange={handleInputChange} placeholder="telebirr Number" className="w-full bg-[#1C160E] p-4 rounded-xl text-xs outline-none text-white"/>
+                <label className="flex flex-col items-center justify-center bg-[#1C160E] p-5 rounded-xl border border-dashed border-[#3D2C1E] cursor-pointer">
+                   <FiCamera className="text-[#F57C1F] mb-2" />
+                   <span className="text-[10px] text-gray-500 uppercase">{formData.screenshot ? "File Ready" : "Upload Receipt"}</span>
+                   <input type="file" className="hidden" onChange={handleFileChange} />
+                </label>
+             </div>
+           )}
+        </div>
 
         <section className="bg-[#2A1E14] rounded-[2.5rem] p-6 space-y-3 border border-white/5 mb-4 shadow-sm">
           <div className="flex justify-between text-xs text-[#8B7E6F]">
@@ -282,24 +269,16 @@ const Checkout = () => {
         </section>
       </div>
 
-      <footer className="bg-[#1C160E] p-6 border-t border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] z-20">
+      <footer className="bg-[#1C160E] p-6 border-t border-white/5 z-20">
         <div className="flex justify-between items-center mb-6 px-1">
           <div>
-            <p className="text-[9px] text-[#8B7E6F] font-black uppercase tracking-widest mb-1">Estimated Arrival</p>
-            <p className="font-black text-white text-sm">25 - 35 mins</p>
-          </div>
-          <div className="text-right">
             <p className="text-[9px] text-[#8B7E6F] font-black uppercase tracking-widest mb-1">Total Pay</p>
             <p className="font-black text-[#F57C1F] text-lg">${grandTotal.toFixed(2)}</p>
           </div>
+          <button onClick={validateAndPlaceOrder} className="bg-[#F57C1F] px-8 py-4 rounded-[1.2rem] font-black text-white uppercase text-xs shadow-xl active:scale-95 transition-transform">
+            Place Order →
+          </button>
         </div>
-        
-        <button 
-          onClick={validateAndPlaceOrder}
-          className="w-full bg-[#F57C1F] py-5 rounded-[1.5rem] flex justify-center items-center gap-2 font-black text-white uppercase text-sm shadow-xl active:scale-95 transition-transform"
-        >
-          Place Order • ${grandTotal.toFixed(2)} →
-        </button>
       </footer>
     </div>
   );

@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
-import { FiMapPin, FiSearch, FiStar, FiFilter, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiMapPin, FiSearch, FiStar, FiFilter, FiChevronLeft, FiChevronRight, FiUser } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { allRestaurants, categories } from '../../utils/data';
+import { allRestaurants, categories, userData } from '../../utils/data';
 
-const LandingPage = () => {
+const LandingPage = ({token}) => {
   const navigate = useNavigate();
-  const [address, setAddress] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Pizza');
-  
-  // --- Pagination State ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; // 3 rows of 2 items each
+  
+  // --- AUTH CHECK ---
+  // In a real app, you'd check a global context or token. 
+  // Here we check if 'isLoggedIn' is in localStorage.
+  const isLoggedIn = !!token;
 
-  // --- Search & Filter Logic ---
+
+  const itemsPerPage = 6;
+
   const filteredRestaurants = allRestaurants.filter(res => {
     const matchesCategory = activeCategory ? res.category === activeCategory : true;
     const matchesSearch = res.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -21,7 +24,6 @@ const LandingPage = () => {
     return matchesCategory && matchesSearch;
   });
 
-  // --- Pagination Calculations ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredRestaurants.slice(indexOfFirstItem, indexOfLastItem);
@@ -29,25 +31,44 @@ const LandingPage = () => {
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
-    window.scrollTo({ top: 700, behavior: 'smooth' }); // Scroll back to grid start
+    window.scrollTo({ top: 700, behavior: 'smooth' });
   };
 
   return (
     <div className="bg-[#1C160E] min-h-screen text-white font-sans no-scrollbar pb-10">
       
-      {/* 1. Header (Same as before) */}
+      {/* 1. Header (DYNAMIC AUTH) */}
       <header className="px-6 py-4 flex justify-between items-center bg-[#1C160E]/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <div className="text-[#F57C1F] text-2xl font-black">🍴</div>
           <span className="text-xl font-black tracking-tight">FoodDash</span>
         </div>
+
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/login')} className="text-sm font-bold text-gray-400 hover:text-white active:scale-90 transition-all px-2 py-1">Login</button>
-          <button onClick={() => navigate('/signup')} className="bg-[#F57C1F] hover:bg-[#ff8c37] active:scale-95 transition-all px-5 py-2.5 rounded-xl text-xs font-black uppercase shadow-lg shadow-[#F57C1F]/20">Sign Up</button>
+          {isLoggedIn ? (
+            /* SHOW PROFILE IF LOGGED IN */
+            <div 
+              onClick={() => navigate('/profile')} 
+              className="flex items-center gap-3 bg-[#2A1E14] pl-2 pr-4 py-1.5 rounded-full border border-white/5 cursor-pointer hover:border-[#F57C1F]/30 transition-all active:scale-95"
+            >
+              <img 
+                src={userData.avatar} 
+                alt="Profile" 
+                className="w-8 h-8 rounded-full object-cover border border-[#F57C1F]/50" 
+              />
+              <span className="text-xs font-bold text-gray-200 hidden sm:block">{userData.name.split(' ')[0]}</span>
+            </div>
+          ) : (
+            /* SHOW LOGIN/SIGNUP IF NOT LOGGED IN */
+            <>
+              <button onClick={() => navigate('/login')} className="text-sm font-bold text-gray-400 hover:text-white active:scale-90 transition-all px-2 py-1">Login</button>
+              <button onClick={() => navigate('/signup')} className="bg-[#F57C1F] hover:bg-[#ff8c37] active:scale-95 transition-all px-5 py-2.5 rounded-xl text-xs font-black uppercase shadow-lg shadow-[#F57C1F]/20">Sign Up</button>
+            </>
+          )}
         </div>
       </header>
 
-      {/* 2. Hero Section (Same as before) */}
+      {/* 2. Hero Section */}
       <div className="relative h-[400px] flex flex-col items-center justify-center text-center px-6">
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-[#1C160E] z-10" />
         <img src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1000&q=80" className="absolute inset-0 w-full h-full object-cover" alt="Hero" />
@@ -67,7 +88,7 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* 3. Categories (Same as before) */}
+      {/* 3. Categories */}
       <div className="p-6">
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-xl font-black">Popular Categories</h2>
@@ -115,7 +136,7 @@ const LandingPage = () => {
           ))}
         </div>
 
-        {/* 5. Pagination Controls - Only shows if more than 3 rows (6 items) */}
+        {/* 5. Pagination */}
         {totalPages > 1 && (
           <div className="mt-16 flex justify-center items-center gap-4">
             <button 

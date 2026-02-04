@@ -5,6 +5,9 @@ import { FiChevronLeft, FiMessageSquare, FiPhone, FiTruck, FiCheckCircle, FiCoff
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// --- IMPORT DYNAMIC DATA ---
+import { driverData, officeData } from '../../utils/data';
+
 // Leaflet marker fix
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -21,10 +24,11 @@ const LiveTracking = () => {
   const [showSupport, setShowSupport] = useState(false);
   const [copied, setCopied] = useState(false);
   
+  // Use location state for order details, fallback to office/driver defaults
   const orderData = useMemo(() => {
     return location.state?.orderDetails || {
       restaurantName: "Express Eats",
-      deliveryPosition: { lat: 9.03, lng: 38.74 },
+      deliveryPosition: officeData.coordinates,
       user: { name: "Guest", phone: "0911000000" }
     };
   }, [location.state]);
@@ -44,21 +48,20 @@ const LiveTracking = () => {
   const timelineSteps = [
     { id: 0, title: "Order Placed", time: times.placed, icon: <FiCheckCircle />, status: "ORDERED" },
     { id: 1, title: "Kitchen is preparing your meal", time: times.prep, icon: <FiCoffee />, status: "PREP" },
-    { id: 2, title: "Out for delivery", time: "Driver is 2.4 miles away", icon: <FiTruck />, status: "WAY" },
+    { id: 2, title: "Out for delivery", time: `Driver is ${driverData.distance} away`, icon: <FiTruck />, status: "WAY" },
     { id: 3, title: "Estimated Arrival", time: times.arrival, icon: <FiHome />, status: "DONE" },
   ];
 
-  const handleCall = () => {
-    window.location.href = `tel:${orderData.user.phone}`;
+  const handleCallDriver = () => {
+    window.location.href = `tel:${driverData.phone}`;
   };
 
-  const handleMessage = () => {
-    window.location.href = `sms:${orderData.user.phone}?body=Hello, I am checking on my order from ${orderData.restaurantName}.`;
+  const handleMessageDriver = () => {
+    window.location.href = `sms:${driverData.phone}?body=Hello ${driverData.name}, I'm checking on my order from ${orderData.restaurantName}.`;
   };
 
   const copyAddress = () => {
-    const address = "123 Culinary Drive, Suite 400, Addis Ababa, Ethiopia";
-    navigator.clipboard.writeText(address);
+    navigator.clipboard.writeText(officeData.address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -113,22 +116,23 @@ const LiveTracking = () => {
       {/* 2. Bottom Content Container */}
       <div className="flex-1 bg-[#1C160E] -mt-12 rounded-t-[3rem] p-8 shadow-[0_-20px_60px_rgba(0,0,0,0.8)] z-[1001] overflow-y-auto no-scrollbar border-t border-white/5">
         
+        {/* DYNAMIC DRIVER INFO */}
         <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <img src="https://i.pravatar.cc/150?u=driver" className="w-16 h-16 rounded-[1.5rem] object-cover border-2 border-[#2A1E14]" alt="Driver" />
+              <img src={driverData.avatar} className="w-16 h-16 rounded-[1.5rem] object-cover border-2 border-[#2A1E14]" alt="Driver" />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-4 border-[#1C160E] rounded-full" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-white">Alex Johnson</h3>
-              <p className="text-[10px] text-[#8B7E6F] font-bold uppercase tracking-widest">Toyota Prius • 7KRM392</p>
+              <h3 className="text-lg font-black text-white">{driverData.name}</h3>
+              <p className="text-[10px] text-[#8B7E6F] font-bold uppercase tracking-widest">{driverData.vehicle} • {driverData.plate}</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleMessage} className="bg-[#2A1E14] p-4 rounded-2xl border border-white/5 active:scale-90 transition-transform">
+            <button onClick={handleMessageDriver} className="bg-[#2A1E14] p-4 rounded-2xl border border-white/5 active:scale-90 transition-transform">
                 <FiMessageSquare className="text-[#F57C1F]" />
             </button>
-            <button onClick={handleCall} className="bg-[#F57C1F] p-4 rounded-2xl shadow-lg shadow-orange-900/40 active:scale-90 transition-transform">
+            <button onClick={handleCallDriver} className="bg-[#F57C1F] p-4 rounded-2xl shadow-lg shadow-orange-900/40 active:scale-90 transition-transform">
                 <FiPhone className="text-white" />
             </button>
           </div>
@@ -160,7 +164,7 @@ const LiveTracking = () => {
         </button>
       </div>
 
-      {/* Support Pop-up Modal */}
+      {/* Support Pop-up Modal - DYNAMIC OFFICE INFO */}
       {showSupport && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowSupport(false)} />
@@ -173,8 +177,8 @@ const LiveTracking = () => {
               <h2 className="text-xl font-black text-white mb-2">Office Headquarters</h2>
               <div className="flex items-center gap-2 group cursor-pointer" onClick={copyAddress}>
                 <p className="text-[#8B7E6F] text-sm leading-relaxed">
-                  123 Culinary Drive, Suite 400<br/>
-                  Addis Ababa, Ethiopia
+                  {officeData.address.split(', ').slice(0, 2).join(', ')}<br/>
+                  {officeData.address.split(', ').slice(2).join(', ')}
                 </p>
                 <button className="text-[#F57C1F] opacity-50 group-hover:opacity-100 transition-opacity">
                   {copied ? <FiCheck /> : <FiCopy />}
@@ -184,11 +188,11 @@ const LiveTracking = () => {
               <div className="space-y-4 w-full">
                 <div className="flex justify-between text-xs">
                   <span className="text-[#8B7E6F] font-bold uppercase">Customer Line</span>
-                  <span className="text-white font-black">+251 911 000 000</span>
+                  <span className="text-white font-black">{officeData.phone}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#8B7E6F] font-bold uppercase">Email Support</span>
-                  <span className="text-white font-black">support@expresseats.com</span>
+                  <span className="text-white font-black">{officeData.email}</span>
                 </div>
               </div>
             </div>

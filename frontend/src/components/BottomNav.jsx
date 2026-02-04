@@ -30,7 +30,7 @@ const BottomNav = () => {
     { id: 'home', icon: <FiHome />, path: '/', label: 'Home' },
     { id: 'search', icon: <FiSearch />, path: '/discovery', label: 'Search' },
     { id: 'cart', icon: <FiShoppingBag />, path: '/checkout', label: 'Cart' },
-    { id: 'profile', icon: <FiUser />, path: '/login', label: 'Profile' },
+    { id: 'profile', icon: <FiUser />, path: '/profile', label: 'Profile' },
   ];
 
   const activeTabs = isAdmin ? adminTabs : userTabs;
