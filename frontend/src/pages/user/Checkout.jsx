@@ -32,7 +32,21 @@ const Checkout = () => {
 
   // --- DYNAMIC USER SYNC ---
   // We prioritize the global userData object to ensure it's always the "Real" logged-in person
-  const currentUser = userData; 
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const activeEmail = localStorage.getItem('loggedInUserEmail');
+    const user = userData.find(u => u.email === activeEmail);
+
+    if(!user){
+      navigate('/login')
+    }else{
+      setCurrentUser(user);
+    }
+    
+  }, [navigate]);
+
+  
 
   const cartData = useMemo(() => {
     const state = location.state || {};
@@ -43,6 +57,8 @@ const Checkout = () => {
       restaurantName: state.restaurantName || "Restaurant"
     };
   }, [location.state]);
+
+  
 
   const subtotal = cartData.totalPrice || 0;
   const deliveryFee = 2.50;
@@ -124,6 +140,27 @@ const Checkout = () => {
       }
     }
 
+      // 1. Increment Orders
+    currentUser.stats.orders += 1;
+    
+    // 2. Add Points (e.g., 10 points for every dollar spent)
+    const earnedPoints = Math.round(grandTotal * 10);
+    // Remove commas to do math, then add them back
+    const currentPoints = Number(currentUser.stats.points) || 0;
+    const newPointsTotal = currentPoints + earnedPoints;
+    currentUser.stats.points = newPointsTotal.toLocaleString();
+
+    // 3. Update Credits (e.g., 1% cashback)
+    const currentCredits = Number(currentUser.stats.credits) || 0;
+    const newCredits = currentCredits + (grandTotal * 0.01);
+    currentUser.stats.credits = `$${newCredits.toFixed(2)}`;
+
+    // 4. Update menuinfo strings (so the Profile page looks updated)
+    currentUser.menuinfo.history = `${currentUser.stats.orders} completed orders`;
+    currentUser.menuinfo.rewards = `${currentUser.stats.points} points`;
+
+    console.log("User stats updated successfully:", currentUser.stats);
+
     alert("Order Placed Successfully!");
     
     const orderDetails = {
@@ -131,14 +168,26 @@ const Checkout = () => {
       user: currentUser, // Sending the real user data to tracking
       deliveryPosition: position, 
       grandTotal: grandTotal,
-      itemsCount: itemsCount
+      itemsCount: itemsCount,
+      status: 'active'
     };
+    
+    localStorage.setItem('activeOrder', JSON.stringify(orderDetails));
+    window.dispatchEvent(new Event('active-order-updated'));
 
     navigate('/tracking', { 
       state: { orderDetails },
       replace: true 
     });
   };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#1C160E] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#F57C1F]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 flex flex-col bg-[#1C160E] text-[#EDE8E2] font-sans overflow-hidden">

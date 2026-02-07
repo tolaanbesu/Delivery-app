@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUser, FiMail, FiLock, FiPhone, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import { userData } from '../../utils/data';
+import defaultAvatar from '../../assets/avatar.jpg';
 
-const SignUp = () => {
+const SignUp = ({setToken}) => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -12,12 +14,61 @@ const SignUp = () => {
     password: '',
     agreed: false
   });
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    setAvatarPreview(URL.createObjectURL(file)); // This creates a local URL for the image
+  }
+};
+
+useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Creating account for:", formData.name);
-    // Add registration logic here
-    navigate('/');
+    
+    // 1. Create the new user object
+    const newUser = {
+      id: userData.length + 1,
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      phone: formData.phone,
+      avatar: avatarPreview || defaultAvatar,
+      memberSince: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      stats: { orders: 0, credits: "$0.00", points: "0" }, // Matched your data format
+      menuinfo: {
+        history: "0 completed orders",
+        addressSummary: "Not set",
+        paymentSummary: "Not set",
+        rewards: "0 points"
+      }
+    };
+
+    // 2. Add to the local array
+    userData.push(newUser);
+
+    // 3. --- AUTHENTICATION LOGIC ---
+    const mockToken = 'user-token-123';
+    
+    // Save to localStorage so App.js and Checkout.jsx can see it
+    localStorage.setItem('userToken', mockToken);
+    localStorage.setItem('loggedInUserEmail', newUser.email);
+
+    // Update the global state in App.js
+    if (setToken) {
+      setToken(mockToken);
+    }
+
+    // 4. Navigate to home
+    navigate('/', { replace: true });
   };
 
   return (
@@ -107,6 +158,16 @@ const SignUp = () => {
                 {showPassword ? <FiEyeOff /> : <FiEye />}
               </button>
             </div>
+          </div>
+
+          <div className="flex flex-col items-center mb-4">
+            <label className="cursor-pointer relative group">
+              <div className="w-20 h-20 rounded-full bg-[#2A1E14] border-2 border-dashed border-[#3D2C1E] flex items-center justify-center overflow-hidden">
+                {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" /> : <FiUser className="text-gray-500" size={30} />}
+              </div>
+              <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
+              <span className="text-[10px] text-[#F57C1F] font-bold mt-2">Upload Photo</span>
+            </label>
           </div>
 
           {/* Reactive Checkbox */}
