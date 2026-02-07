@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { FiChevronLeft, FiMessageSquare, FiPhone, FiTruck, FiCheckCircle, FiCoffee, FiHome, FiHelpCircle, FiX, FiMapPin, FiCopy, FiCheck } from 'react-icons/fi';
@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // --- IMPORT DYNAMIC DATA ---
-import { driverData, officeData } from '../../utils/data';
+import { driverData, officeData, allRestaurants } from '../../utils/data';
 
 // Leaflet marker fix
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -24,33 +24,102 @@ const LiveTracking = () => {
   const [showSupport, setShowSupport] = useState(false);
   const [copied, setCopied] = useState(false);
   
-  // Use location state for order details, fallback to office/driver defaults
-  const orderData = useMemo(() => {
-    return location.state?.orderDetails || {
+  // 1. Helper Function: Calculate distance in km between two points
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // 2. Memoized Order and Time Logic
+  const { orderData, deliveryTimes, calculatedDistance, duration } = useMemo(() => {
+    const orderDetails = location.state?.orderDetails || {
       restaurantName: "Express Eats",
       deliveryPosition: officeData.coordinates,
       user: { name: "Guest", phone: "0911000000" }
     };
-  }, [location.state]);
 
-  const [times] = useState(() => {
-    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Find restaurant coordinates from data.js based on name
+    const restaurant = allRestaurants.find(r => r.name === orderDetails.restaurantName) || { lat: 9.02, lng: 38.75 };
+    
+    // Calculate distance between Restaurant and User's pinned location
+    const dist = calculateDistance(
+      restaurant.lat || 9.02, 
+      restaurant.lng || 38.75, 
+      orderDetails.deliveryPosition.lat, 
+      orderDetails.deliveryPosition.lng
+    );
+
+    // Calculate time (Assume 5 mins per km + 10 mins prep)
+    const travelTimeMinutes = Math.round(dist * 5) + 10;
+    
     const now = new Date();
+    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     return {
+    orderData: orderDetails,
+    calculatedDistance: dist.toFixed(1),
+    duration: travelTimeMinutes, // <--- ADD THIS
+    deliveryTimes: {
       placed: formatTime(new Date(now.getTime() - 20 * 60000)),
       prep: formatTime(new Date(now.getTime() - 5 * 60000)),
-      arrival: formatTime(new Date(now.getTime() + 15 * 60000)) 
+      arrival: formatTime(new Date(now.getTime() + travelTimeMinutes * 60000))
+    }
     };
-  });
+  }, [location.state]);
 
-  const [orderStatus] = useState(2); 
+  const [orderStatus, setOrderStatus] = useState(0);
+
+  // 2. Logic to simulate order progression
+useEffect(() => {
+  const stageInterval = (duration * 60000) / 3; 
+
+  const timer = setInterval(() => {
+    setOrderStatus((prevStatus) => {
+      if (prevStatus < 3) return prevStatus + 1;
+      clearInterval(timer);
+      return prevStatus;
+    });
+  }, stageInterval); 
+
+  return () => clearInterval(timer);
+}, [duration]);
 
   const timelineSteps = [
-    { id: 0, title: "Order Placed", time: times.placed, icon: <FiCheckCircle />, status: "ORDERED" },
-    { id: 1, title: "Kitchen is preparing your meal", time: times.prep, icon: <FiCoffee />, status: "PREP" },
-    { id: 2, title: "Out for delivery", time: `Driver is ${driverData.distance} away`, icon: <FiTruck />, status: "WAY" },
-    { id: 3, title: "Estimated Arrival", time: times.arrival, icon: <FiHome />, status: "DONE" },
-  ];
+  { 
+    id: 0, 
+    title: "Order Placed", 
+    time: deliveryTimes.placed, 
+    icon: <FiCheckCircle />, 
+    status: "ORDERED" 
+  },
+  { 
+    id: 1, 
+    title: "Kitchen is preparing your meal", 
+    time: orderStatus >= 1 ? "Started" : "Waiting...", 
+    icon: <FiCoffee />, 
+    status: "PREP" 
+  },
+  { 
+    id: 2, 
+    title: "Out for delivery", 
+    time: orderStatus >= 2 ? `Driver is ${calculatedDistance} km away` : "Driver arriving at restaurant", 
+    icon: <FiTruck />, 
+    status: "WAY" 
+  },
+  { 
+    id: 3, 
+    title: "Estimated Arrival", 
+    time: orderStatus === 3 ? "Arrived!" : deliveryTimes.arrival, 
+    icon: <FiHome />, 
+    status: "DONE" 
+  },
+];
 
   const handleCallDriver = () => {
     window.location.href = `tel:${driverData.phone}`;
@@ -93,7 +162,7 @@ const LiveTracking = () => {
               <span className="font-black text-sm uppercase tracking-tighter text-white">
                 {orderStatus === 3 ? "Delivered" : "On the way"}
               </span>
-              <span className="text-[#F57C1F] font-black text-sm">ETA: {times.arrival}</span>
+              <span className="text-[#F57C1F] font-black text-sm">ETA: {duration} mins</span>
             </div>
             
             <div className="space-y-2">
@@ -164,7 +233,7 @@ const LiveTracking = () => {
         </button>
       </div>
 
-      {/* Support Pop-up Modal - DYNAMIC OFFICE INFO */}
+      {/* Support Pop-up Modal */}
       {showSupport && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowSupport(false)} />

@@ -13,7 +13,11 @@ const LandingPage = ({token}) => {
   // In a real app, you'd check a global context or token. 
   // Here we check if 'isLoggedIn' is in localStorage.
   const isLoggedIn = !!token;
-
+   
+  const loggedInEmail = localStorage.getItem('loggedInUserEmail');
+  const currentUser = userData.find(
+    (user) => user.email === loggedInEmail
+  );
 
   const itemsPerPage = 6;
 
@@ -45,18 +49,18 @@ const LandingPage = ({token}) => {
         </div>
 
         <div className="flex items-center gap-3">
-          {isLoggedIn ? (
+          {isLoggedIn && currentUser ? (
             /* SHOW PROFILE IF LOGGED IN */
             <div 
               onClick={() => navigate('/profile')} 
               className="flex items-center gap-3 bg-[#2A1E14] pl-2 pr-4 py-1.5 rounded-full border border-white/5 cursor-pointer hover:border-[#F57C1F]/30 transition-all active:scale-95"
             >
               <img 
-                src={userData.avatar} 
+                src={currentUser.avatar} 
                 alt="Profile" 
                 className="w-8 h-8 rounded-full object-cover border border-[#F57C1F]/50" 
               />
-              <span className="text-xs font-bold text-gray-200 hidden sm:block">{userData.name.split(' ')[0]}</span>
+              <span className="text-xs font-bold text-gray-200 hidden sm:block">{currentUser.name.split(' ')[0]}</span>
             </div>
           ) : (
             /* SHOW LOGIN/SIGNUP IF NOT LOGGED IN */
@@ -115,7 +119,17 @@ const LandingPage = ({token}) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {currentItems.map((res) => (
-            <div key={res.id} onClick={() => navigate(`/restaurant/${res.id}`)} className="group cursor-pointer animate-in fade-in duration-500">
+            <div 
+              key={res.id} 
+              onClick={() => {
+                if (isLoggedIn && currentUser) {
+                  navigate(`/restaurant/${res.id}`);
+                } else {
+                  navigate('/login'); // redirect to login if not logged in
+                }
+              }} 
+              className="group cursor-pointer animate-in fade-in duration-500"
+            >
               <div className="relative h-64 w-full rounded-[2.5rem] overflow-hidden mb-4 border border-white/5">
                 <img src={res.img} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1000" alt={res.name} />
                 <div className="absolute top-5 right-5 bg-white text-black px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 shadow-xl">
