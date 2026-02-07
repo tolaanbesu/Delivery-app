@@ -1,22 +1,45 @@
-import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { 
   FiHome, FiSearch, FiShoppingBag, FiUser, 
-  FiGrid, FiBarChart2, FiLayers, FiSettings, FiPlusSquare 
+  FiGrid, FiLayers, FiSettings, FiPlusSquare, FiMapPin
 } from 'react-icons/fi';
 
 const BottomNav = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  // Hide Nav on Auth screens (Login/Signup)
+  const [activeOrder, setActiveOrder] = useState(() => {
+  const stored = localStorage.getItem('activeOrder');
+  return stored ? JSON.parse(stored) : null;
+});
+
+useEffect(() => {
+
+  const syncOrder = () => {
+    const stored = localStorage.getItem('activeOrder');
+    setActiveOrder(stored ? JSON.parse(stored) : null);
+  };
+
+  window.addEventListener('storage', syncOrder);
+  window.addEventListener('active-order-updated', syncOrder);
+
+  return () => {
+    window.removeEventListener('storage', syncOrder);
+    window.removeEventListener('active-order-updated', syncOrder);
+  };
+}, []);
+
+
+
+  // Hide Nav on Auth screens
   const isAuthPage = ['/login', '/signup'].includes(pathname);
   if (isAuthPage) return null;
 
-  // Determine if we are in Admin or User mode
+  // Determine if Admin
   const isAdmin = pathname.startsWith('/admin');
 
-  // Icons for Admin [based on admin dashboard images]
+  // Admin tabs
   const adminTabs = [
     { id: 'dash', icon: <FiGrid />, path: '/admin/dashboard', label: 'Home' },
     { id: 'menu', icon: <FiLayers />, path: '/admin/menu', label: 'Menu' },
@@ -25,10 +48,21 @@ const BottomNav = () => {
     { id: 'settings', icon: <FiSettings />, path: '/admin/dashboard', label: 'Set' },
   ];
 
-  // Icons for Users [based on checkout/landing images]
+  // User tabs (🔥 Track added dynamically)
   const userTabs = [
     { id: 'home', icon: <FiHome />, path: '/', label: 'Home' },
     { id: 'search', icon: <FiSearch />, path: '/discovery', label: 'Search' },
+
+    ...(activeOrder
+      ? [{
+          id: 'track',
+          icon: <FiMapPin />,
+          path: '/tracking',
+          label: 'Track',
+          live: true
+        }]
+      : []),
+
     { id: 'cart', icon: <FiShoppingBag />, path: '/checkout', label: 'Cart' },
     { id: 'profile', icon: <FiUser />, path: '/profile', label: 'Profile' },
   ];
@@ -39,22 +73,47 @@ const BottomNav = () => {
     <div className="absolute bottom-0 left-0 right-0 bg-[#1C160E]/95 backdrop-blur-lg border-t border-[#2A1E14] px-6 py-4 flex justify-between items-center z-50">
       {activeTabs.map((tab) => {
         const isActive = pathname === tab.path;
+
         return (
           <button
             key={tab.id}
             onClick={() => navigate(tab.path)}
-            className="flex flex-col items-center gap-1 group"
+            className="relative flex flex-col items-center gap-1 group"
           >
-            <div className={`text-2xl transition-all duration-300 ${
-              isActive ? 'text-[#F57C1F] scale-110 drop-shadow-[0_0_8px_rgba(245,124,31,0.5)]' : 'text-gray-600'
-            }`}>
+            {/* Icon */}
+            <div
+              className={`relative text-2xl transition-all duration-300 ${
+                isActive
+                  ? 'text-[#F57C1F] scale-110 drop-shadow-[0_0_8px_rgba(245,124,31,0.5)]'
+                  : 'text-gray-600'
+              }`}
+            >
               {tab.icon}
+
+              {/* 🔴 Live pulse indicator */}
+              {tab.live && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F57C1F] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#F57C1F]"></span>
+                </span>
+              )}
             </div>
-            <span className={`text-[9px] font-black uppercase tracking-widest ${
-              isActive ? 'text-[#F57C1F]' : 'text-gray-600'
-            }`}>
+
+            {/* Label */}
+            <span
+              className={`text-[9px] font-black uppercase tracking-widest ${
+                isActive ? 'text-[#F57C1F]' : 'text-gray-600'
+              }`}
+            >
               {tab.label}
             </span>
+
+            {/* 🕒 ETA badge (optional) */}
+            {tab.live && activeOrder?.eta && (
+              <span className="absolute -top-3 text-[8px] px-2 py-[2px] rounded-full bg-[#F57C1F]/20 text-[#F57C1F] font-black">
+                {activeOrder.eta}
+              </span>
+            )}
           </button>
         );
       })}
