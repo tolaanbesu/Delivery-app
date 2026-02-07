@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState} from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Layout & Shared Components
@@ -26,7 +26,9 @@ import Profile from './pages/user/Profile';
 // --- 1. DEFINE PROTECTED ROUTE OUTSIDE ---
 // This prevents the "created during render" error.
 const ProtectedRoute = ({ token, children }) => {
-  if (!token) {
+  const backupToken  = localStorage.getItem('userToken');
+
+  if (!token && !backupToken) {
     return <Navigate to="/login" replace />;
   }
   return children;
@@ -34,6 +36,7 @@ const ProtectedRoute = ({ token, children }) => {
 
 const AppContent = () => {
   const location = useLocation();
+  
   
   // Manage Auth state
   const [token, setToken] = useState(() => localStorage.getItem('userToken'));
@@ -55,13 +58,14 @@ const AppContent = () => {
 
   return (
     <Layout>
+      
       <Routes>
         {/* Public Routes */}
         <Route 
           path="/login" 
           element={<Login setToken={setToken} />} 
         />
-        <Route path="/signup" element={<SignUp />} />
+        <Route path="/signup" element={<SignUp setToken={setToken}/>} />
         <Route path="/" element={<LandingPage token={token}/>} />
         <Route path="/discovery" element={<Discovery />} />
 

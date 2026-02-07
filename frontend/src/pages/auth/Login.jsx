@@ -14,34 +14,49 @@ const Login = ({setToken}) => {
     e.preventDefault();
     setError('');
 
-    const targetData = isAdmin ? adminData : userData;
+    let loggedInUser = null;
 
     // 1. Check if data exists and matches
-    if (targetData && formData.email === targetData.email && formData.password === targetData.password) {
-      
+    if (isAdmin) {
+  // ADMIN LOGIN (single object)
+    if (
+      formData.email === adminData.email &&
+      formData.password === adminData.password
+    ) {
+      loggedInUser = { role: 'admin' };
+     }
+    } else {
+    // USER LOGIN (array search)
+    loggedInUser = userData.find(
+      (user) =>
+        user.email === formData.email &&
+        user.password === formData.password
+    );
+  }
+
+    if (loggedInUser) {
       const generatedToken = isAdmin ? 'admin-token-123' : 'user-token-123';
 
-      // 2. Set LocalStorage FIRST
       localStorage.setItem('userToken', generatedToken);
-      
-      // 3. Update State
+      localStorage.setItem('loggedInUserEmail', loggedInUser.email);
+
+      // 🔑 THIS IS IMPORTANT (for current user)
+      if (!isAdmin) {
+        localStorage.setItem('loggedInUserEmail', loggedInUser.email);
+      }
+
       if (setToken) {
         setToken(generatedToken);
       }
 
-      // 4. Use a tiny timeout or ensure state is set before navigating
-      // This gives React a chance to propagate the 'token' to the ProtectedRoute
       setTimeout(() => {
-        if (isAdmin) {
-          navigate('/admin/dashboard', { replace: true });
-        } else {
-          navigate('/discovery', { replace: true });
-        }
-      }, 10); 
-      
+        navigate(isAdmin ? '/admin/dashboard' : '/', { replace: true });
+      }, 50);
+
     } else {
       setError('Invalid email or password. Please try again.');
     }
+
   };
 
   return (
