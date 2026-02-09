@@ -1,7 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import { FiChevronLeft, FiMessageSquare, FiPhone, FiTruck, FiCheckCircle, FiCoffee, FiHome, FiHelpCircle, FiX, FiMapPin, FiCopy, FiCheck } from 'react-icons/fi';
+import { 
+  FiChevronLeft, FiMessageSquare, FiPhone, FiTruck, 
+  FiCheckCircle, FiCoffee, FiHome, FiHelpCircle, 
+  FiX, FiMapPin, FiCopy, FiCheck, FiPackage, FiPlus
+} from 'react-icons/fi';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -23,111 +27,119 @@ const LiveTracking = () => {
   const location = useLocation();
   const [showSupport, setShowSupport] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+
+  // --- 1. MAINTAIN STABLE TIME ---
+  const mountTimeRef = useRef(null);
   
-  // 1. Helper Function: Calculate distance in km between two points
+  if (!mountTimeRef.current) {
+    const storedOrder = JSON.parse(localStorage.getItem('activeOrder'));
+    const existingTime = location.state?.orderDetails?.createdAt || storedOrder?.createdAt;
+
+    if (existingTime) {
+      mountTimeRef.current = new Date(existingTime);
+    } else {
+      const now = new Date();
+      mountTimeRef.current = now;
+      if (storedOrder) {
+        localStorage.setItem('activeOrder', JSON.stringify({
+          ...storedOrder,
+          createdAt: now.toISOString()
+        }));
+      }
+    }
+  }
+
+  // 2. Helper Function: Calculate distance in km
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   };
 
-  // 2. Memoized Order and Time Logic
+  // 3. Memoized Order and Time Logic
   const { orderData, deliveryTimes, calculatedDistance, duration } = useMemo(() => {
-    const orderDetails = location.state?.orderDetails || {
+    const orderDetails = location.state?.orderDetails || JSON.parse(localStorage.getItem('activeOrder')) || {
       restaurantName: "Express Eats",
       deliveryPosition: officeData.coordinates,
       user: { name: "Guest", phone: "0911000000" }
     };
 
-    // Find restaurant coordinates from data.js based on name
     const restaurant = allRestaurants.find(r => r.name === orderDetails.restaurantName) || { lat: 9.02, lng: 38.75 };
     
-    // Calculate distance between Restaurant and User's pinned location
     const dist = calculateDistance(
-      restaurant.lat || 9.02, 
-      restaurant.lng || 38.75, 
+      restaurant.lat, 
+      restaurant.lng, 
       orderDetails.deliveryPosition.lat, 
       orderDetails.deliveryPosition.lng
     );
 
-    // Calculate time (Assume 5 mins per km + 10 mins prep)
     const travelTimeMinutes = Math.round(dist * 5) + 10;
-    
-    const now = new Date();
+    const startTime = mountTimeRef.current;
     const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return {
-    orderData: orderDetails,
-    calculatedDistance: dist.toFixed(1),
-    duration: travelTimeMinutes, // <--- ADD THIS
-    deliveryTimes: {
-      placed: formatTime(new Date(now.getTime() - 20 * 60000)),
-      prep: formatTime(new Date(now.getTime() - 5 * 60000)),
-      arrival: formatTime(new Date(now.getTime() + travelTimeMinutes * 60000))
-    }
+      orderData: orderDetails,
+      calculatedDistance: dist.toFixed(1),
+      duration: travelTimeMinutes,
+      deliveryTimes: {
+        placed: formatTime(startTime),
+        prep: formatTime(new Date(startTime.getTime() + 5 * 60000)),
+        arrival: formatTime(new Date(startTime.getTime() + travelTimeMinutes * 60000))
+      }
     };
   }, [location.state]);
 
-  const [orderStatus, setOrderStatus] = useState(0);
+  // --- 4. DYNAMIC STATUS LOGIC ---
+  const [orderStatus, setOrderStatus] = useState(() => {
+    const elapsedMs = new Date() - mountTimeRef.current;
+    const totalMs = duration * 60000;
+    const stage = Math.floor((elapsedMs / totalMs) * 4); 
+    return Math.min(Math.max(stage, 0), 3);
+  });
 
-  // 2. Logic to simulate order progression
-useEffect(() => {
-  const stageInterval = (duration * 60000) / 3; 
+  const isCompleted = orderStatus === 3;
 
-  const timer = setInterval(() => {
-    setOrderStatus((prevStatus) => {
-      if (prevStatus < 3) return prevStatus + 1;
-      clearInterval(timer);
-      return prevStatus;
-    });
-  }, stageInterval); 
+  useEffect(() => {
+    const totalMs = duration * 60000;
+    const timer = setInterval(() => {
+      const elapsedMs = new Date() - mountTimeRef.current;
+      const currentStage = Math.floor((elapsedMs / totalMs) * 4);
+      if (currentStage >= 3) {
+        setOrderStatus(3);
+        clearInterval(timer);
+      } else {
+        setOrderStatus(currentStage);
+      }
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [duration]);
 
-  return () => clearInterval(timer);
-}, [duration]);
+  // 5. Manual Confirmation Logic
+  const handleConfirmDelivery = () => {
+    setIsConfirmed(true);
+    const completedOrder = {
+      ...orderData,
+      status: 'completed',
+      completedAt: new Date().toISOString()
+    };
+    const existingHistory = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+    localStorage.setItem('orderHistory', JSON.stringify([completedOrder, ...existingHistory]));
+    localStorage.removeItem('activeOrder');
+    window.dispatchEvent(new Event('active-order-updated'));
+    setTimeout(() => navigate('/'), 2000);
+  };
 
   const timelineSteps = [
-  { 
-    id: 0, 
-    title: "Order Placed", 
-    time: deliveryTimes.placed, 
-    icon: <FiCheckCircle />, 
-    status: "ORDERED" 
-  },
-  { 
-    id: 1, 
-    title: "Kitchen is preparing your meal", 
-    time: orderStatus >= 1 ? "Started" : "Waiting...", 
-    icon: <FiCoffee />, 
-    status: "PREP" 
-  },
-  { 
-    id: 2, 
-    title: "Out for delivery", 
-    time: orderStatus >= 2 ? `Driver is ${calculatedDistance} km away` : "Driver arriving at restaurant", 
-    icon: <FiTruck />, 
-    status: "WAY" 
-  },
-  { 
-    id: 3, 
-    title: "Estimated Arrival", 
-    time: orderStatus === 3 ? "Arrived!" : deliveryTimes.arrival, 
-    icon: <FiHome />, 
-    status: "DONE" 
-  },
-];
-
-  const handleCallDriver = () => {
-    window.location.href = `tel:${driverData.phone}`;
-  };
-
-  const handleMessageDriver = () => {
-    window.location.href = `sms:${driverData.phone}?body=Hello ${driverData.name}, I'm checking on my order from ${orderData.restaurantName}.`;
-  };
+    { id: 0, title: "Order Placed", time: deliveryTimes.placed, icon: <FiCheckCircle /> },
+    { id: 1, title: "Kitchen is preparing your meal", time: orderStatus >= 1 ? "Started" : "Waiting...", icon: <FiCoffee /> },
+    { id: 2, title: "Out for delivery", time: orderStatus >= 2 ? `Driver is ${calculatedDistance} km away` : "Driver arriving at restaurant", icon: <FiTruck /> },
+    { id: 3, title: "Estimated Arrival", time: orderStatus === 3 ? "Arrived!" : deliveryTimes.arrival, icon: <FiHome /> },
+  ];
 
   const copyAddress = () => {
     navigator.clipboard.writeText(officeData.address);
@@ -142,6 +154,7 @@ useEffect(() => {
       <div className="relative h-[45%] w-full">
         <div className="w-full h-full z-0">
           <MapContainer 
+            key={orderData.restaurantName}
             center={[orderData.deliveryPosition.lat, orderData.deliveryPosition.lng]} 
             zoom={15} 
             zoomControl={false} 
@@ -153,14 +166,28 @@ useEffect(() => {
         </div>
 
         <div className="absolute top-8 left-6 right-6 z-[1000]">
-          <button onClick={() => navigate(-1)} className="bg-[#1C160E] p-3 rounded-xl mb-4 shadow-xl active:scale-90 transition-transform">
-            <FiChevronLeft className="text-white" />
-          </button>
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={() => navigate(-1)} className="bg-[#1C160E] p-3 rounded-xl shadow-xl active:scale-90 transition-transform border border-white/5">
+              <FiChevronLeft className="text-white" />
+            </button>
+            
+            {/* NEW: Navigation Shortcut to Order More */}
+            <div className="flex gap-2">
+                <button onClick={() => navigate('/')} className="bg-[#1C160E] p-3 rounded-xl shadow-xl active:scale-90 transition-transform flex items-center gap-2 border border-white/5">
+                <FiPlus className="text-[#F57C1F]" />
+                <span className="text-white text-[10px] font-black uppercase tracking-widest">Order New</span>
+                </button>
+                <button onClick={() => navigate('/')} className="bg-[#1C160E] p-3 rounded-xl shadow-xl active:scale-90 transition-transform flex items-center gap-2 border border-white/5">
+                <FiHome className="text-[#F57C1F]" />
+                <span className="text-white text-[10px] font-black uppercase tracking-widest">Home</span>
+                </button>
+            </div>
+          </div>
           
           <div className="bg-[#2A1E14]/90 backdrop-blur-md p-5 rounded-[2rem] border border-white/5 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <span className="font-black text-sm uppercase tracking-tighter text-white">
-                {orderStatus === 3 ? "Delivered" : "On the way"}
+              <span className="font-black text-sm text-white uppercase tracking-tighter">
+                {isConfirmed ? "Package Received" : isCompleted ? "Order Arrived" : "On the way"}
               </span>
               <span className="text-[#F57C1F] font-black text-sm">ETA: {duration} mins</span>
             </div>
@@ -168,8 +195,8 @@ useEffect(() => {
             <div className="space-y-2">
               <div className="h-1.5 bg-[#3D2C1E] rounded-full overflow-hidden">
                 <div 
-                    className="h-full bg-[#F57C1F] transition-all duration-1000" 
-                    style={{ width: `${((orderStatus + 1) / 4) * 100}%` }} 
+                  className="h-full bg-[#F57C1F] transition-all duration-1000 ease-linear" 
+                  style={{ width: `${((orderStatus + 1) / 4) * 100}%` }} 
                 />
               </div>
               <div className="flex justify-between px-1">
@@ -185,7 +212,7 @@ useEffect(() => {
       {/* 2. Bottom Content Container */}
       <div className="flex-1 bg-[#1C160E] -mt-12 rounded-t-[3rem] p-8 shadow-[0_-20px_60px_rgba(0,0,0,0.8)] z-[1001] overflow-y-auto no-scrollbar border-t border-white/5">
         
-        {/* DYNAMIC DRIVER INFO */}
+        {/* DRIVER INFO */}
         <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -198,16 +225,16 @@ useEffect(() => {
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleMessageDriver} className="bg-[#2A1E14] p-4 rounded-2xl border border-white/5 active:scale-90 transition-transform">
-                <FiMessageSquare className="text-[#F57C1F]" />
+            <button onClick={() => window.location.href = `sms:${driverData.phone}`} className="bg-[#2A1E14] p-4 rounded-2xl border border-white/5 active:scale-90 transition-transform">
+              <FiMessageSquare className="text-[#F57C1F]" />
             </button>
-            <button onClick={handleCallDriver} className="bg-[#F57C1F] p-4 rounded-2xl shadow-lg shadow-orange-900/40 active:scale-90 transition-transform">
-                <FiPhone className="text-white" />
+            <button onClick={() => window.location.href = `tel:${driverData.phone}`} className="bg-[#F57C1F] p-4 rounded-2xl shadow-lg shadow-orange-900/40 active:scale-90 transition-transform">
+              <FiPhone className="text-white" />
             </button>
           </div>
         </div>
 
-        <div className="space-y-10 relative">
+        <div className="space-y-10 relative mb-10">
           {timelineSteps.map((step, index) => (
             <div key={step.id} className="flex gap-6 relative">
               {index < 3 && (
@@ -224,13 +251,27 @@ useEffect(() => {
           ))}
         </div>
 
-        <button 
-          onClick={() => setShowSupport(true)}
-          className="w-full mt-12 bg-[#2A1E14] py-5 rounded-2xl border border-white/5 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
-        >
-          <FiHelpCircle className="text-[#8B7E6F]" />
-          <span className="text-[10px] font-black uppercase text-[#8B7E6F]">Order Help & Support</span>
-        </button>
+        {/* 3. DYNAMIC BUTTON (Help OR Confirmation) */}
+        {isCompleted && !isConfirmed ? (
+          <button 
+            onClick={handleConfirmDelivery}
+            className="w-full bg-[#F57C1F] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg shadow-orange-900/40 flex items-center justify-center gap-3 active:scale-95 transition-all animate-pulse"
+          >
+            <FiPackage size={20}/> Confirm Item Received
+          </button>
+        ) : isConfirmed ? (
+          <div className="w-full bg-green-500/10 border border-green-500/20 text-green-500 py-5 rounded-3xl font-black uppercase text-center flex items-center justify-center gap-3">
+            <FiCheckCircle size={20}/> Delivery Accepted
+          </div>
+        ) : (
+          <button 
+            onClick={() => setShowSupport(true)}
+            className="w-full bg-[#2A1E14] py-5 rounded-2xl border border-white/5 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+          >
+            <FiHelpCircle className="text-[#8B7E6F]" />
+            <span className="text-[10px] font-black uppercase text-[#8B7E6F]">Order Help & Support</span>
+          </button>
+        )}
       </div>
 
       {/* Support Pop-up Modal */}
@@ -244,6 +285,15 @@ useEffect(() => {
                 <FiMapPin className="text-[#F57C1F]" size={28} />
               </div>
               <h2 className="text-xl font-black text-white mb-2">Office Headquarters</h2>
+              
+              {/* NEW: BUTTON TO PLACE ANOTHER ORDER IN MODAL */}
+              <button 
+                onClick={() => navigate('/')}
+                className="mb-6 w-full bg-[#F57C1F]/20 text-[#F57C1F] py-3 rounded-2xl font-black uppercase text-[10px] border border-[#F57C1F]/30 active:scale-95 transition-transform"
+              >
+                + Make Another Order
+              </button>
+
               <div className="flex items-center gap-2 group cursor-pointer" onClick={copyAddress}>
                 <p className="text-[#8B7E6F] text-sm leading-relaxed">
                   {officeData.address.split(', ').slice(0, 2).join(', ')}<br/>

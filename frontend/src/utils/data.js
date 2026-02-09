@@ -219,3 +219,144 @@ export const allRestaurants = [
     lng: 38.7156
   }
 ];
+
+// Centralized order history model (seed empty; actual runtime storage uses localStorage 'orders')
+// Each order shape mirrors Checkout's newOrder and includes owner for auditing/multi-user scenarios.
+export const orders = [
+  // Example structure:
+  // {
+  //   id: 'uuid',
+  //   restaurantName: 'The Burger Project',
+  //   owner: { id: 1, name: 'Tola Anbesu', email: 'tola@example.com' },
+  //   user: { ...fullUserAtOrderTime },
+  //   deliveryPosition: { lat: 9.03, lng: 38.74 },
+  //   grandTotal: 42.50,
+  //   itemsCount: 3,
+  //   status: 'active' | 'completed' | 'canceled',
+  //   createdAt: 'ISO'
+  // }
+];
+
+export const menuStructure = [
+  {
+    id: 'cat1',
+    name: 'Appetizers',
+    count: 2,
+    status: 'Active',
+    items: [
+      { id: 'i1', name: 'Truffle Fries', price: 8.50, description: 'Vegan, Gluten-Free', img: 'https://images.unsplash.com/photo-1573082801974-af29627374f0?w=120', active: true },
+      { id: 'i2', name: 'Buffalo Wings', price: 12.00, description: '12 pcs, Spicy', img: 'https://images.unsplash.com/photo-1567620905732-2d1ec7bb7445?w=120', active: false },
+    ]
+  },
+  { 
+    id: 'cat2', 
+    name: 'Main Courses', 
+    count: 2, 
+    status: 'Active', 
+    items: [
+      { id: 'i3', name: 'Classic Cheeseburger', price: 15.50, description: 'Angus beef, cheddar', img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=120', active: true },
+      { id: 'i4', name: 'Veggie Burger', price: 14.00, description: 'Quinoa patty, avocado', img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=120', active: true },
+    ] 
+  },
+  { 
+    id: 'cat3', 
+    name: 'Desserts', 
+    count: 1, 
+    status: 'Draft', 
+    items: [
+      { id: 'i5', name: 'Chocolate Lava Cake', price: 9.00, description: 'Warm dark chocolate', img: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=120', active: true },
+    ] 
+  }
+];
+
+export const adminDashboardData = {
+  // Stats organized by time period
+  periodStats: {
+    Today: {
+      totalRevenue: "$5,210.50",
+      revenueGrowth: "+2.1%",
+      activeOrders: "24",
+      activeOrdersGrowth: "+1.2%",
+      newUsers: "5",
+      newUsersGrowth: "+0.5%",
+      trendsTotal: "$1,850.00",
+      trendsGrowth: "+4%"
+    },
+    Week: {
+      totalRevenue: "$42,850.20",
+      revenueGrowth: "+12.5%",
+      activeOrders: "142",
+      activeOrdersGrowth: "+5.2%",
+      newUsers: "38",
+      newUsersGrowth: "+8.1%",
+      trendsTotal: "$12,450.00",
+      trendsGrowth: "+12%"
+    },
+    Month: {
+      totalRevenue: "$182,400.00",
+      revenueGrowth: "+18.2%",
+      activeOrders: "612",
+      activeOrdersGrowth: "+10.5%",
+      newUsers: "145",
+      newUsersGrowth: "+15.3%",
+      trendsTotal: "$45,200.00",
+      trendsGrowth: "+14%"
+    },
+    Year: {
+      totalRevenue: "$2.1M",
+      revenueGrowth: "+25.0%",
+      activeOrders: "8,420",
+      activeOrdersGrowth: "+22.1%",
+      newUsers: "1,240",
+      newUsersGrowth: "+30.5%",
+      trendsTotal: "$450,000.00",
+      trendsGrowth: "+20%"
+    }
+  },
+  
+  charts: {
+    Today: [
+      { name: '08:00', value: 10 }, { name: '10:00', value: 25 }, { name: '12:00', value: 45 },
+      { name: '14:00', value: 30 }, { name: '16:00', value: 55 }, { name: '18:00', value: 20 },
+    ],
+    Week: [
+      { name: 'MON', value: 30 }, { name: 'TUE', value: 55 }, { name: 'WED', value: 35 },
+      { name: 'THU', value: 45 }, { name: 'FRI', value: 15 }, { name: 'SAT', value: 65 }, { name: 'SUN', value: 50 },
+    ],
+    Month: [
+      { name: 'WK 1', value: 120 }, { name: 'WK 2', value: 210 }, { name: 'WK 3', value: 180 }, { name: 'WK 4', value: 250 },
+    ],
+    Year: [
+      { name: 'JAN', value: 400 }, { name: 'MAR', value: 700 }, { name: 'JUN', value: 500 },
+      { name: 'SEP', value: 900 }, { name: 'DEC', value: 1200 },
+    ]
+  },
+
+  recentOrders: [
+    { id: '#8492', name: 'Burger King • NYC', price: '$24.50', time: '2 mins ago', status: 'PAID', icon: '🍔' },
+    { id: '#8491', name: "Joe's Pizza • Brooklyn", price: '$42.00', time: '15 mins ago', status: 'PAID', icon: '🍕' },
+    { id: '#8490', name: 'Miso Ramen House', price: '$18.25', time: '45 mins ago', status: 'PENDING', icon: '🍜' },
+    { id: '#8489', name: 'Taco Bell • Queens', price: '$12.00', time: '1 hour ago', status: 'PAID', icon: '🌮' },
+    { id: '#8488', name: 'Sushi Zen', price: '$55.00', time: '2 hours ago', status: 'PAID', icon: '🍣' },
+    { id: '#8487', name: 'Starbucks • Jersey', price: '$8.50', time: '3 hours ago', status: 'PAID', icon: '☕' },
+    { id: '#8486', name: 'KFC • Bronx', price: '$31.20', time: '5 hours ago', status: 'PENDING', icon: '🍗' },
+  ],
+
+  notifications: [
+    { id: 1, title: 'New Order', message: 'Order #8493 received from Burger King', time: 'Just now', type: 'order' },
+    { id: 2, title: 'Revenue Milestone', message: 'You reached your daily goal!', time: '2h ago', type: 'goal' },
+    { id: 3, title: 'System Update', message: 'Dashboard version 2.4 is now live', time: '5h ago', type: 'info' },
+  ],
+
+  adminProfile: {
+    name: "Alex Rivera",
+    role: "Senior Administrator",
+    email: "alex.admin@restaurant.com",
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
+    stats: {
+      managed: 24,
+      joined: "Jan 2024"
+    }
+  }
+
+};
