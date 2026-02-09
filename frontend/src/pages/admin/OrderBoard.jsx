@@ -10,13 +10,18 @@ import { userData, adminDashboardData } from '../../utils/data';
 const OrderBoard = () => {
   // --- Enhanced Data State ---
   const [orders, setOrders] = useState(() => {
-    return adminDashboardData.recentOrders.map((order, index) => ({
-      ...order,
-      // Distributing items across all tabs for a full demo experience
-      boardStatus: index === 0 ? 'New' : index < 3 ? 'Prep' : index < 5 ? 'Out' : 'Done',
-      customer: userData[0],
-      items: ['1x Signature Dish', '1x Side Item', '1x Drink'] 
-    }));
+    return adminDashboardData.recentOrders.map((order, index) => {
+      // Find the specific customer from userData based on order.userId
+      const customer = userData.find(u => u.id === order.userId) || userData[0];
+      
+      return {
+        ...order,
+        // Map initial board status based on order index/data
+        boardStatus: index < 4 ? 'New' : index < 7 ? 'Prep' : index < 9 ? 'Out' : 'Done',
+        customer: customer,
+        items: ['1x Signature Dish', '1x Side Item', '1x Drink'] 
+      };
+    });
   });
 
   const [activeTab, setActiveTab] = useState('New');
