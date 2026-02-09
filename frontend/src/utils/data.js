@@ -3,21 +3,31 @@ export const userData = [
     id: 1,
     name: "Tola Anbesu",
     email: "tola@example.com",
-    password: "password123",
     phone: "+251 911 000 000",
-    avatar: "https://i.pravatar.cc/150?u=alex",
+    avatar: "https://i.pravatar.cc/150?u=tola",
     memberSince: "August 2024",
-    stats: { 
-      orders: 42, 
-      credits: 12.50, 
-      points: 1240 
-    },
-    menuinfo: {
-      history: "42 completed orders",
-      addressSummary: "Home, Office",
-      paymentSummary: "Visa **** 4242",
-      rewards: "1,240 points"
-    }
+    stats: { orders: 42, credits: 12.50, points: 1240 },
+    menuinfo: { history: "42 orders", addressSummary: "Home, Office", paymentSummary: "Visa **** 4242" }
+  },
+  {
+    id: 2,
+    name: "Sara Gebre",
+    email: "sara.g@example.com",
+    phone: "+251 922 111 222",
+    avatar: "https://i.pravatar.cc/150?u=sara",
+    memberSince: "January 2025",
+    stats: { orders: 12, credits: 5.00, points: 450 },
+    menuinfo: { history: "12 orders", addressSummary: "Apartment 4B", paymentSummary: "MasterCard **** 8821" }
+  },
+  {
+    id: 3,
+    name: "Dawit Isaac",
+    email: "dawit@example.com",
+    phone: "+251 944 333 444",
+    avatar: "https://i.pravatar.cc/150?u=dawit",
+    memberSince: "March 2024",
+    stats: { orders: 85, credits: 0.00, points: 3100 },
+    menuinfo: { history: "85 orders", addressSummary: "Bole Road", paymentSummary: "Telebirr" }
   }
 ];
 
@@ -333,13 +343,28 @@ export const adminDashboardData = {
   },
 
   recentOrders: [
+    // NEW QUEUE (PAID)
     { id: '#8492', name: 'Burger King • NYC', price: '$24.50', time: '2 mins ago', status: 'PAID', icon: '🍔' },
     { id: '#8491', name: "Joe's Pizza • Brooklyn", price: '$42.00', time: '15 mins ago', status: 'PAID', icon: '🍕' },
+    { id: '#8494', name: 'Sakura Zen • Bole', price: '$68.00', time: '1 min ago', status: 'PAID', icon: '🍣' },
+    { id: '#8495', name: 'Bella Napoli', price: '$35.20', time: '8 mins ago', status: 'PAID', icon: '🍕' },
+    
+    // PREP QUEUE (PENDING)
     { id: '#8490', name: 'Miso Ramen House', price: '$18.25', time: '45 mins ago', status: 'PENDING', icon: '🍜' },
+    { id: '#8486', name: 'KFC • Bronx', price: '$31.20', time: '5 hours ago', status: 'PENDING', icon: '🍗' },
+    { id: '#8496', name: 'Thai Terrace', price: '$22.00', time: '12 mins ago', status: 'PENDING', icon: '🍜' },
+    { id: '#8497', name: 'Sweet Treats Co.', price: '$14.50', time: '20 mins ago', status: 'PENDING', icon: '🍩' },
+    
+    // OUT FOR DELIVERY (Simulated by adding more PAID items we can move)
     { id: '#8489', name: 'Taco Bell • Queens', price: '$12.00', time: '1 hour ago', status: 'PAID', icon: '🌮' },
     { id: '#8488', name: 'Sushi Zen', price: '$55.00', time: '2 hours ago', status: 'PAID', icon: '🍣' },
+    
+    // DONE / COMPLETED
     { id: '#8487', name: 'Starbucks • Jersey', price: '$8.50', time: '3 hours ago', status: 'PAID', icon: '☕' },
-    { id: '#8486', name: 'KFC • Bronx', price: '$31.20', time: '5 hours ago', status: 'PENDING', icon: '🍗' },
+    { id: '#8485', name: 'Gelato Galaxy', price: '$19.00', time: '6 hours ago', status: 'PAID', icon: '🍦' },
+    { id: '#8484', name: 'Vegan Stack', price: '$27.40', time: 'Yesterday', status: 'PAID', icon: '🥗' },
+    { id: '#8483', name: 'Tokyo Drift', price: '$92.00', time: 'Yesterday', status: 'PAID', icon: '🍱' },
+    { id: '#8482', name: 'The Burger Project', price: '$15.00', time: 'Yesterday', status: 'PAID', icon: '🍔' }
   ],
 
   notifications: [
