@@ -10,27 +10,34 @@ const BottomNav = () => {
   const navigate = useNavigate();
 
   const [activeOrder, setActiveOrder] = useState(() => {
-  const stored = localStorage.getItem('activeOrder');
-  return stored ? JSON.parse(stored) : null;
-});
-
-useEffect(() => {
-
-  const syncOrder = () => {
     const stored = localStorage.getItem('activeOrder');
-    setActiveOrder(stored ? JSON.parse(stored) : null);
-  };
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  window.addEventListener('storage', syncOrder);
-  window.addEventListener('active-order-updated', syncOrder);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return !!localStorage.getItem('loggedInUserEmail');
+  });
 
-  return () => {
-    window.removeEventListener('storage', syncOrder);
-    window.removeEventListener('active-order-updated', syncOrder);
-  };
-}, []);
+  useEffect(() => {
+    const syncOrder = () => {
+      const stored = localStorage.getItem('activeOrder');
+      setActiveOrder(stored ? JSON.parse(stored) : null);
+    };
 
+    const syncAuth = () => {
+      setIsLoggedIn(!!localStorage.getItem('loggedInUserEmail'));
+    };
 
+    window.addEventListener('storage', syncOrder);
+    window.addEventListener('storage', syncAuth);
+    window.addEventListener('active-order-updated', syncOrder);
+
+    return () => {
+      window.removeEventListener('storage', syncOrder);
+      window.removeEventListener('storage', syncAuth);
+      window.removeEventListener('active-order-updated', syncOrder);
+    };
+  }, []);
 
   // Hide Nav on Auth screens
   const isAuthPage = ['/login', '/signup'].includes(pathname);
@@ -48,12 +55,17 @@ useEffect(() => {
     { id: 'settings', icon: <FiSettings />, path: '/admin/dashboard', label: 'Set' },
   ];
 
-  // User tabs (🔥 Track added dynamically)
+  // 🔐 Logged-in user email
+  const loggedInEmail = localStorage.getItem('loggedInUserEmail');
+
+  // User tabs (🔥 Track added ONLY if order belongs to this user)
   const userTabs = [
     { id: 'home', icon: <FiHome />, path: '/', label: 'Home' },
     { id: 'search', icon: <FiSearch />, path: '/discovery', label: 'Search' },
 
-    ...(activeOrder
+    ...(activeOrder &&
+      isLoggedIn &&
+      activeOrder.user?.email === loggedInEmail
       ? [{
           id: 'track',
           icon: <FiMapPin />,

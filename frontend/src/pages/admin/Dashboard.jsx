@@ -1,80 +1,195 @@
-import React from 'react';
-import { FiTrendingUp, FiDollarSign, FiBell } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { FiBell, FiTrendingUp, FiDollarSign, FiLogOut, FiSettings, FiUser, FiX } from 'react-icons/fi';
+import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { adminDashboardData } from '../../utils/data';
 
 const AdminDashboard = () => {
+  const [activePeriod, setActivePeriod] = useState('Week');
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  
+  // NEW: Pop-up States
+  const [showNotifPopup, setShowNotifPopup] = useState(false);
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
+
+  const stats = adminDashboardData.periodStats[activePeriod];
+  const chartData = adminDashboardData.charts[activePeriod];
+  const { notifications, adminProfile } = adminDashboardData;
+  
+  const displayedOrders = showAllTransactions 
+    ? adminDashboardData.recentOrders 
+    : adminDashboardData.recentOrders.slice(0, 3);
+
   return (
-    <div className="max-w-md mx-auto bg-brand-dark min-h-screen text-[#EDE8E2] p-5 pb-24">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="bg-brand-card p-2 rounded-xl border border-brand-border">
-          <div className="grid grid-cols-2 gap-1 w-5 h-5">
-            <div className="bg-brand-orange rounded-sm"></div>
-            <div className="bg-brand-orange opacity-50 rounded-sm"></div>
-            <div className="bg-brand-orange opacity-50 rounded-sm"></div>
-            <div className="bg-brand-orange rounded-sm"></div>
+    <div className="min-h-screen bg-[#130F0A] text-white p-6 pb-28 relative">
+      
+      {/* --- POPUP: NOTIFICATIONS --- */}
+      {showNotifPopup && (
+        <div className="absolute top-20 right-6 w-80 bg-[#1C160E] border border-[#F57C1F]/20 rounded-3xl shadow-2xl z-[100] p-5 animate-in fade-in zoom-in duration-200 backdrop-blur-xl">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-black uppercase text-xs tracking-widest text-[#F57C1F]">Notifications</h4>
+            <button onClick={() => setShowNotifPopup(false)}><FiX /></button>
+          </div>
+          <div className="space-y-4">
+            {notifications.map(n => (
+              <div key={n.id} className="border-b border-white/5 pb-3 last:border-0">
+                <p className="font-bold text-sm">{n.title}</p>
+                <p className="text-gray-500 text-xs mt-1">{n.message}</p>
+                <p className="text-[#F57C1F] text-[9px] font-bold mt-1 uppercase">{n.time}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <h1 className="text-xl font-bold tracking-tight">Admin Dashboard</h1>
-        <div className="flex gap-3">
-          <div className="relative"><FiBell className="text-2xl" /><span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-orange rounded-full border-2 border-brand-dark"></span></div>
-          <img src="https://i.pravatar.cc/100" className="w-8 h-8 rounded-full border border-brand-border" alt="profile" />
+      )}
+
+      {/* --- POPUP: PROFILE --- */}
+      {showProfilePopup && (
+        <div className="absolute top-20 right-6 w-72 bg-[#1C160E] border border-[#F57C1F]/20 rounded-3xl shadow-2xl z-[100] p-6 animate-in fade-in zoom-in duration-200 backdrop-blur-xl">
+          <div className="flex justify-end mb-2">
+            <button onClick={() => setShowProfilePopup(false)}><FiX /></button>
+          </div>
+          <div className="text-center">
+            <img src={adminProfile.avatar} className="w-20 h-20 rounded-full mx-auto border-2 border-[#F57C1F] mb-3" alt="" />
+            <h4 className="font-black text-lg">{adminProfile.name}</h4>
+            <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">{adminProfile.role}</p>
+          </div>
+          <div className="mt-6 space-y-2">
+            <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors text-sm">
+              <FiUser className="text-[#F57C1F]" /> Account Settings
+            </button>
+            <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors text-sm">
+              <FiSettings className="text-[#F57C1F]" /> Security
+            </button>
+            <button className="w-full flex items-center gap-3 p-3 hover:bg-red-500/10 text-red-500 rounded-xl transition-colors text-sm font-bold mt-2">
+              <FiLogOut /> Logout
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#2A1E14] p-2.5 rounded-xl border border-white/5 shadow-inner">
+            <div className="grid grid-cols-2 gap-1 w-5 h-5">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-[#F57C1F] rounded-[2px]" />
+              ))}
+            </div>
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">Admin Dashboard</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => { setShowNotifPopup(!showNotifPopup); setShowProfilePopup(false); }}
+            className="relative p-2 bg-[#2A1E14] rounded-full border border-white/5"
+          >
+            <FiBell className="text-xl text-gray-400" />
+            <span className="absolute top-2 right-2 bg-[#F57C1F] w-2.5 h-2.5 rounded-full border-2 border-[#130F0A]" />
+          </button>
+          <button onClick={() => { setShowProfilePopup(!showProfilePopup); setShowNotifPopup(false); }}>
+            <img 
+              src={adminProfile.avatar} 
+              className="w-10 h-10 rounded-full border-2 border-[#F57C1F]/30 object-cover cursor-pointer hover:scale-105 transition-transform" 
+              alt="Admin" 
+            />
+          </button>
         </div>
       </div>
 
-      {/* Time Filters */}
-      <div className="flex justify-between mb-8 px-2 text-sm font-medium text-gray-500">
-        {['Today', 'Week', 'Month', 'Year'].map((t) => (
-          <button key={t} className={t === 'Week' ? "text-brand-orange border-b-2 border-brand-orange pb-1" : ""}>{t}</button>
+      {/* Period Tabs */}
+      <div className="flex gap-8 mb-8 text-sm font-bold text-gray-500 overflow-x-auto no-scrollbar">
+        {['Today', 'Week', 'Month', 'Year'].map(t => (
+          <button 
+            key={t} 
+            onClick={() => setActivePeriod(t)}
+            className={`transition-all duration-300 relative pb-2 ${activePeriod === t ? 'text-[#F57C1F]' : 'hover:text-gray-300'}`}
+          >
+            {t}
+            {activePeriod === t && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F57C1F] rounded-full" />}
+          </button>
         ))}
       </div>
 
-      {/* Main Revenue Card */}
-      <div className="bg-brand-card rounded-3xl p-6 border border-brand-border mb-4">
-        <div className="flex justify-between items-start text-gray-400 mb-2">
-          <span className="text-sm">Total Revenue</span>
-          <div className="bg-brand-orange/10 p-2 rounded-lg"><FiDollarSign className="text-brand-orange" /></div>
+      {/* Total Revenue Card */}
+      <div className="bg-[#1C160E] rounded-[2.5rem] p-7 mb-6 border border-white/5 shadow-xl">
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-gray-400 text-sm font-medium">Total Revenue ({activePeriod})</p>
+          <div className="p-2 bg-[#F57C1F]/10 rounded-lg text-[#F57C1F]"><FiDollarSign size={20} /></div>
         </div>
-        <h2 className="text-4xl font-bold mb-2">$42,850.20</h2>
-        <div className="flex items-center text-status-green text-sm font-medium">
-          <FiTrendingUp className="mr-1" /> +12.5% <span className="text-gray-500 ml-2 font-normal">vs last week</span>
+        <h2 className="text-4xl font-black mb-3 tracking-tight">{stats.totalRevenue}</h2>
+        <p className="text-[#4ADE80] text-sm font-bold flex items-center gap-1">
+          <FiTrendingUp /> {stats.revenueGrowth} <span className="text-gray-500 font-normal">vs previous</span>
+        </p>
+      </div>
+
+      {/* Small Stats Grid */}
+      <div className="grid grid-cols-2 gap-5 mb-8">
+        <div className="bg-[#1C160E] p-6 rounded-[2.5rem] border border-white/5 shadow-lg">
+          <p className="text-gray-500 text-[10px] uppercase font-black tracking-[0.15em] mb-2">Active Orders</p>
+          <p className="text-3xl font-black italic">{stats.activeOrders}</p>
+          <p className="text-[#4ADE80] text-xs font-bold mt-1">{stats.activeOrdersGrowth}</p>
+        </div>
+        <div className="bg-[#1C160E] p-6 rounded-[2.5rem] border border-white/5 shadow-lg">
+          <p className="text-gray-500 text-[10px] uppercase font-black tracking-[0.15em] mb-2">New Users</p>
+          <p className="text-3xl font-black italic">{stats.newUsers}</p>
+          <p className="text-[#4ADE80] text-xs font-bold mt-1">{stats.newUsersGrowth}</p>
         </div>
       </div>
 
-      {/* Split Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-brand-card p-5 rounded-3xl border border-brand-border">
-          <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-bold">Active Orders</p>
-          <p className="text-3xl font-bold">142</p>
-          <p className="text-status-green text-xs mt-1 font-bold">+5.2%</p>
-        </div>
-        <div className="bg-brand-card p-5 rounded-3xl border border-brand-border">
-          <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-bold">New Users</p>
-          <p className="text-3xl font-bold">38</p>
-          <p className="text-status-green text-xs mt-1 font-bold">+8.1%</p>
-        </div>
-      </div>
-
-      {/* Graph Section */}
-      <div className="bg-brand-card rounded-3xl p-6 border border-brand-border">
+      {/* Sales Trends Chart */}
+      <div className="bg-[#1C160E] rounded-[2.5rem] p-7 border border-white/5 mb-10 shadow-xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold">Sales Trends</h3>
-          <button className="text-brand-orange text-xs font-bold uppercase">Full Report</button>
+          <div><h3 className="font-bold text-lg">Sales Trends</h3><p className="text-gray-500 text-xs mt-0.5">Revenue Growth</p></div>
+          <button className="text-[#F57C1F] text-xs font-black uppercase tracking-widest border border-[#F57C1F]/20 px-4 py-2 rounded-full">Full Report</button>
         </div>
-        <p className="text-gray-500 text-xs">Revenue Growth</p>
-        <div className="flex items-baseline gap-2 mb-6">
-          <span className="text-2xl font-bold">$12,450.00</span>
-          <span className="text-status-green text-sm">+12%</span>
+        <div className="mb-6 flex items-baseline gap-2">
+          <span className="text-3xl font-black">{stats.trendsTotal}</span>
+          <span className="text-[#4ADE80] text-sm font-bold">{stats.trendsGrowth}</span>
         </div>
-        {/* Mock Wave Path */}
-        <div className="h-24 relative overflow-hidden flex items-end justify-between px-1">
-           {[30, 60, 45, 70, 40, 20, 80, 50, 20, 70].map((h, i) => (
-             <div key={i} style={{height: `${h}%`}} className="w-[8%] bg-gradient-to-t from-brand-orange/40 to-brand-orange rounded-full"></div>
-           ))}
-        </div>
-        <div className="flex justify-between text-[10px] text-gray-600 mt-4 font-bold uppercase tracking-tighter">
-          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        <div className="h-40 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F57C1F" stopOpacity={0.3}/><stop offset="95%" stopColor="#F57C1F" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Tooltip contentStyle={{ backgroundColor: '#1C160E', border: '1px solid #2A1E14', borderRadius: '12px' }} itemStyle={{ color: '#F57C1F' }} />
+              <Area type="monotone" dataKey="value" stroke="#F57C1F" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" animationDuration={1000} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 700 }} dy={15} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Recent Orders Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-black italic mb-6">Recent Orders</h3>
+        <div className="space-y-4">
+          {displayedOrders.map((order) => (
+            <div key={order.id} className="bg-[#1C160E] p-5 rounded-[2rem] border border-white/5 flex items-center gap-4 hover:border-[#F57C1F]/30 transition-colors cursor-pointer group">
+              <div className="w-14 h-14 bg-[#2A1E14] rounded-2xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-105 transition-transform">{order.icon}</div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-bold text-sm text-gray-100 group-hover:text-[#F57C1F] transition-colors">{order.name}</h4>
+                  <span className={`text-sm font-black ${order.status === 'PAID' ? 'text-[#4ADE80]' : 'text-[#F57C1F]'}`}>{order.price}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Order {order.id} • {order.time}</p>
+                  <span className="text-[9px] font-black text-gray-500 tracking-[0.2em]">{order.status}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button 
+        onClick={() => setShowAllTransactions(!showAllTransactions)}
+        className="w-full bg-[#1C160E] border border-[#F57C1F]/20 text-[#F57C1F] py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] hover:bg-[#F57C1F] hover:text-white transition-all shadow-xl active:scale-[0.98]"
+      >
+        {showAllTransactions ? "Show Less" : "View All Transactions"}
+      </button>
     </div>
   );
 };
