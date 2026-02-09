@@ -163,21 +163,31 @@ const Checkout = () => {
 
     alert("Order Placed Successfully!");
     
-    const orderDetails = {
+    const newOrder = {
+      id: crypto.randomUUID(),              // 🔑 REQUIRED
       restaurantName: cartData.restaurantName,
-      user: currentUser, // Sending the real user data to tracking
-      deliveryPosition: position, 
-      grandTotal: grandTotal,
-      itemsCount: itemsCount,
-      status: 'active'
+      owner: { id: currentUser.id, name: currentUser.name, email: currentUser.email },
+      user: currentUser,
+      deliveryPosition: position,
+      grandTotal,
+      itemsCount,
+      status: 'active',
+      createdAt: new Date().toISOString()
     };
-    
-    localStorage.setItem('activeOrder', JSON.stringify(orderDetails));
-    window.dispatchEvent(new Event('active-order-updated'));
 
-    navigate('/tracking', { 
-      state: { orderDetails },
-      replace: true 
+    // Append to active orders (do not replace)
+    const existingActive = JSON.parse(localStorage.getItem('activeOrders') || '[]');
+    localStorage.setItem('activeOrders', JSON.stringify([newOrder, ...existingActive]));
+
+    // Append to global orders history
+    const existingAll = JSON.parse(localStorage.getItem('orders') || '[]');
+    localStorage.setItem('orders', JSON.stringify([newOrder, ...existingAll]));
+
+    // Keep last order for quick reference if needed
+    localStorage.setItem('activeOrder', JSON.stringify(newOrder));
+
+    navigate('/tracking', {
+      state: { order: newOrder }
     });
   };
 
