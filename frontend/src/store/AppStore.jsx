@@ -1,4 +1,7 @@
 import { createContext, useReducer } from "react";
+import { generateAdminDashboardData } from "./adminDashboardData";
+
+
 import {
   users,
   office,
@@ -16,8 +19,8 @@ export const AppContext = createContext();
 const initialState = {
   // AUTH / USERS
   users,
-  currentUser: null, // set on login
-  activeRole: null, // "user" | "admin"
+  currentUser: null,
+  activeRole: null,
 
   // COMPANY / SUPPORT
   office,
@@ -34,8 +37,15 @@ const initialState = {
 
   // ORDERS
   orders: JSON.parse(localStorage.getItem("orders")) || [],
-  activeOrders: JSON.parse(localStorage.getItem("activeOrders")) || []
+  activeOrders: JSON.parse(localStorage.getItem("activeOrders")) || [],
+
+  // DASHBOARD
+  adminDashboardData: generateAdminDashboardData(
+    users,
+    JSON.parse(localStorage.getItem("orders")) || []
+  )
 };
+
 
 /* ======================================================
    REDUCER

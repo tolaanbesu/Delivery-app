@@ -30,8 +30,8 @@ export const users = [
     memberSince: "2025-01-01",
     stats: { orders: 12, rewards: 1240, credits: 12.5 },
     menuinfo: { 
-      history: "5 orders", 
-      addressSummary: "2 addresses", 
+      history: "2 orders", 
+      addressSummary: "1 addresses", 
       paymentSummary: "1 card", 
       rewards: "1240 points" 
     }
