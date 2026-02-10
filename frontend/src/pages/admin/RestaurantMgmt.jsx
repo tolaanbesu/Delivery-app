@@ -8,10 +8,10 @@ import {
 import { AppContext } from '../../store/AppStore';
 
 const RestaurantMgmt = () => {
-  const { 0: storeState } = useContext(AppContext); // get state from context
+  const [state, dispatch] = useContext(AppContext); // get state from context
 
   // --- State Logic ---
-  const [restaurants, setRestaurants] = useState(storeState.allRestaurants);
+  const [restaurants, setRestaurants] = useState(state.restaurants);
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,11 +19,23 @@ const RestaurantMgmt = () => {
   const [showAll, setShowAll] = useState(false);
 
   // --- Handlers ---
-  const filteredData = restaurants.filter(res => {
+  const filteredData = (restaurants || []).filter(res => {
+    // 1. Handle Status
     const status = res.status || 'Active'; 
     const matchesFilter = filter === 'All' || status === filter;
-    const matchesSearch = res.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (res.Address || "").toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // 2. Safely get Name
+    const resName = String(res.name || "").toLowerCase();
+
+    // 3. FIX: Check 'address' (lowercase) and avoid searching the 'location' object
+    // In your data, 'address' is the string, 'location' is the {lat, lng} object.
+    const resAddress = typeof res.address === 'string' ? res.address.toLowerCase() : "";
+    
+    const search = searchQuery.toLowerCase();
+
+    // 4. Perform Search
+    const matchesSearch = resName.includes(search) || resAddress.includes(search);
+    
     return matchesFilter && matchesSearch;
   });
 
@@ -143,8 +155,8 @@ const RestaurantMgmt = () => {
                   <div>
                     <p className="font-bold text-base leading-tight">{res.name}</p>
                     <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                      <FiMapPin className="text-[10px]" /> {res.Address || res.location}
-                    </p>
+  <FiMapPin className="text-[10px]" /> {res.address || res.locationName || "No address provided"}
+</p>
                   </div>
                 </div>
                 <span className={`text-[9px] px-2.5 py-1 rounded-md font-black uppercase tracking-widest ${

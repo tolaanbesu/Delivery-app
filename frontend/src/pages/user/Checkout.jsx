@@ -34,11 +34,27 @@ const Checkout = () => {
   const location = useLocation();
   const [state, dispatch] = useContext(AppContext);
 
+  // --- FIXED: Find user from State or try multiple localStorage keys to prevent spin ---
+  // --- FIXED: Fetch full user object using the email as a key ---
+  const currentUser = useMemo(() => {
+  const email = localStorage.getItem('loggedInUserEmail') || state.user?.email;
 
-  const currentUser = state.currentUser;
+  if (!email) return null;
+
+  // Look up full user info from AppStore users array
+  const fullUser = state.users?.find(u => u.email === email);
+
+  if (fullUser) return fullUser;
+
+  // fallback if not found
+  return { email, name: 'User', avatar: '' };
+}, [state.user, state.users]);
+
 
   useEffect(() => {
-    if (!currentUser) navigate('/login');
+    if (!currentUser && !localStorage.getItem('loggedInUserEmail')) {
+      navigate('/login', { replace: true });
+    }
   }, [currentUser, navigate]);
 
   const cartData = useMemo(() => {
@@ -117,8 +133,8 @@ const Checkout = () => {
     const newOrder = {
       id: crypto.randomUUID(),
       restaurantName: cartData.restaurantName,
-      ownerId: currentUser.id,
-      user: { email: currentUser.email, name: currentUser.name },
+      ownerId: currentUser?.id,
+      user: { email: currentUser?.email, name: currentUser?.name },
       deliveryPosition: position,
       grandTotal,
       itemsCount,
@@ -128,7 +144,10 @@ const Checkout = () => {
 
     dispatch({ type: "PLACE_ORDER", payload: newOrder });
 
-    localStorage.setItem('activeOrder', JSON.stringify(newOrder));
+    const existingOrders = JSON.parse(localStorage.getItem('activeOrders') || '[]');
+    const updatedOrders = [...existingOrders, newOrder];
+    
+    localStorage.setItem('activeOrders', JSON.stringify(updatedOrders));
     window.dispatchEvent(new Event('active-order-updated'));
 
     navigate('/tracking', { state: { order: newOrder } });
@@ -156,14 +175,12 @@ const Checkout = () => {
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 space-y-6 pb-6">
         
-        {/* Progress Bar */}
         <div className="flex justify-center gap-2 mb-2">
           <div className="w-2 h-2 rounded-full bg-[#3D2C1E]" />
           <div className="w-10 h-2 rounded-full bg-[#F57C1F]" />
           <div className="w-2 h-2 rounded-full bg-[#3D2C1E]" />
         </div>
 
-        {/* Map Section */}
         <section className="space-y-3">
           <div className="flex justify-between items-end">
             <h2 className="text-md font-bold">Delivery Location</h2>
@@ -195,13 +212,12 @@ const Checkout = () => {
           </div>
         </section>
 
-        {/* DYNAMIC CONTACT INFO SECTION */}
         <section>
           <h2 className="text-md font-bold mb-4">Contact Details</h2>
           <div className="bg-[#2A1E14] rounded-[2.5rem] p-6 space-y-4 border border-white/5 shadow-inner">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#F57C1F]/30">
-                <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
+                <img src={currentUser.avatar || ''} alt="User" className="w-full h-full object-cover" />
               </div>
               <div>
                 <p className="font-black text-xs text-white uppercase tracking-tight">{currentUser.name}</p>
@@ -218,7 +234,6 @@ const Checkout = () => {
           </div>
         </section>
 
-        {/* Payment and Totals... (rest of the UI remains the same) */}
         <section>
           <h2 className="text-md font-bold mb-4">Payment Method</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -233,7 +248,6 @@ const Checkout = () => {
           </div>
         </section>
 
-        {/* Conditional Payment Fields */}
         <div className="pb-4">
            {paymentMethod === 'card' ? (
              <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
