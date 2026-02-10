@@ -9,9 +9,11 @@ const BottomNav = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
+  // --- UPDATED LOGIC TO CHECK ARRAY ---
   const [activeOrder, setActiveOrder] = useState(() => {
-    const stored = localStorage.getItem('activeOrder');
-    return stored ? JSON.parse(stored) : null;
+    const loggedInEmail = localStorage.getItem('loggedInUserEmail');
+    const stored = JSON.parse(localStorage.getItem('activeOrders') || '[]');
+    return stored.find(order => order.user?.email === loggedInEmail) || null;
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -20,8 +22,9 @@ const BottomNav = () => {
 
   useEffect(() => {
     const syncOrder = () => {
-      const stored = localStorage.getItem('activeOrder');
-      setActiveOrder(stored ? JSON.parse(stored) : null);
+      const loggedInEmail = localStorage.getItem('loggedInUserEmail');
+      const stored = JSON.parse(localStorage.getItem('activeOrders') || '[]');
+      setActiveOrder(stored.find(order => order.user?.email === loggedInEmail) || null);
     };
 
     const syncAuth = () => {

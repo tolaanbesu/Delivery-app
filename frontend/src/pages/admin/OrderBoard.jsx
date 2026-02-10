@@ -8,17 +8,18 @@ import {
 import { AppContext } from '../../store/AppStore';
 
 const OrderBoard = () => {
-  const { 0: storeState } = useContext(AppContext); // get state from context
+  const [state, dispatch] = useContext(AppContext); // get state from context
 
   // --- Enhanced Data State ---
   const [orders, setOrders] = useState(() => {
-    return storeState.recentOrders.map((order, index) => {
-      const customer = storeState.users.find(u => u.id === order.userId) || storeState.users[0];
+    // 2. Changed 'storeState' to 'state' and added fallbacks (|| []) to prevent the .map() crash
+    return (state.recentOrders || []).map((order, index) => {
+      const customer = (state.users || []).find(u => u.id === order.userId) || (state.users?.[0]);
       
       return {
         ...order,
         boardStatus: index < 4 ? 'New' : index < 7 ? 'Prep' : index < 9 ? 'Out' : 'Done',
-        customer: customer,
+        customer: customer || { name: 'Guest' },
         items: ['1x Signature Dish', '1x Side Item', '1x Drink']
       };
     });

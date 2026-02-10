@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import {
   FiBell,
   FiTrendingUp,
@@ -21,11 +21,24 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   /* 🔑 AppStore */
-  const [{ adminDashboardData }] = useContext(AppContext);
+  const [state] = useContext(AppContext);
+  const { adminDashboardData, users } = state;
+
+  const currentUser = useMemo(() => {
+    const savedEmail = localStorage.getItem('loggedInUserEmail');
+    if (!savedEmail || !users) return null;
+    
+    // Find the full object from the master list
+    return users.find(u => u.email === savedEmail);
+  }, [users]);
+
 
   const stats = adminDashboardData.periodStats[activePeriod];
   const chartData = adminDashboardData.charts[activePeriod];
-  const { notifications, adminProfile } = adminDashboardData;
+  const { notifications } = adminDashboardData;
+  
+
+
 
   const displayedOrders = showAllTransactions
     ? adminDashboardData.recentOrders
@@ -66,9 +79,9 @@ const AdminDashboard = () => {
             <button onClick={() => setShowProfilePopup(false)}><FiX /></button>
           </div>
           <div className="text-center">
-            <img src={adminProfile.avatar} className="w-20 h-20 rounded-full mx-auto border-2 border-[#F57C1F] mb-3" alt="" />
-            <h4 className="font-black text-lg">{adminProfile.name}</h4>
-            <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">{adminProfile.role}</p>
+            <img src={currentUser.avatar} className="w-20 h-20 rounded-full mx-auto border-2 border-[#F57C1F] mb-3" alt="" />
+            <h4 className="font-black text-lg">{currentUser.name}</h4>
+            <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">{currentUser.role}</p>
           </div>
           <div className="mt-6 space-y-2">
             <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors text-sm">
@@ -106,7 +119,7 @@ const AdminDashboard = () => {
           </button>
           <button onClick={() => { setShowProfilePopup(!showProfilePopup); setShowNotifPopup(false); }}>
             <img 
-              src={adminProfile.avatar} 
+              src={currentUser.avatar} 
               className="w-10 h-10 rounded-full border-2 border-[#F57C1F]/30 object-cover cursor-pointer hover:scale-105 transition-transform" 
               alt="Admin" 
             />
