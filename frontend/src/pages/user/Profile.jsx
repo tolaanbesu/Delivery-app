@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect, useContext } from 'react'; 
 import { useNavigate } from 'react-router-dom';
-import { FiChevronLeft, FiSettings, FiEdit3, FiPackage, FiMapPin, FiCreditCard, FiLogOut, FiChevronRight, FiAward } from 'react-icons/fi';
-import { userData } from '../../utils/data';
+import { 
+  FiChevronLeft, FiSettings, FiEdit3, FiPackage, FiMapPin, 
+  FiCreditCard, FiLogOut, FiChevronRight, FiAward 
+} from 'react-icons/fi';
+import { AppContext } from '../../store/AppStore';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [state, dispatch] = useContext(AppContext); // ✅
+// <-- AppStore access
+
 
   const loggedInEmail = localStorage.getItem('loggedInUserEmail'); 
-  const currentUser = userData.find(user => user.email === loggedInEmail);
+const currentUser = state.users.find(user => user.email === loggedInEmail);
 
   // --- EDIT MODE STATE ---
   const [isEditing, setIsEditing] = useState(false);
@@ -192,8 +198,7 @@ const Profile = () => {
 
 export default Profile;
 
-// import React from 'react';
-// import { useEffect } from 'react';
+// import React, { useState, useEffect } from 'react'; 
 // import { useNavigate } from 'react-router-dom';
 // import { FiChevronLeft, FiSettings, FiEdit3, FiPackage, FiMapPin, FiCreditCard, FiLogOut, FiChevronRight, FiAward } from 'react-icons/fi';
 // import { userData } from '../../utils/data';
@@ -201,10 +206,17 @@ export default Profile;
 // const Profile = () => {
 //   const navigate = useNavigate();
 
-//   const loggedInEmail = localStorage.getItem('loggedInUserEmail'); // set this when logging in
+//   const loggedInEmail = localStorage.getItem('loggedInUserEmail'); 
 //   const currentUser = userData.find(user => user.email === loggedInEmail);
 
-//    // Redirect to login if not logged in
+//   // --- EDIT MODE STATE ---
+//   const [isEditing, setIsEditing] = useState(false);
+//   const [editData, setEditData] = useState({
+//     name: currentUser?.name || '',
+//     email: currentUser?.email || '',
+//     avatar: currentUser?.avatar || ''
+//   });
+
 //   useEffect(() => {
 //     if (!currentUser) {
 //       navigate('/login', { replace: true });
@@ -219,7 +231,7 @@ export default Profile;
 //       label: "Order History", 
 //       sub: currentUser.menuinfo.history, 
 //       color: "text-blue-400",
-//       path: "/orders" // Example path
+//       path: "/orders"
 //     },
 //     { 
 //       icon: <FiMapPin />, 
@@ -251,6 +263,16 @@ export default Profile;
 //     window.location.reload();
 //   };
 
+//   const handleSave = () => {
+//     // Update currentUser in memory
+//     currentUser.name = editData.name;
+//     currentUser.email = editData.email;
+//     currentUser.avatar = editData.avatar;
+
+//     setIsEditing(false);
+//     localStorage.setItem('loggedInUserEmail', editData.email);
+//   };
+
 //   return (
 //     <div className="max-w-md mx-auto bg-[#1C160E] min-h-screen text-[#EDE8E2] pb-24 font-sans">
 //       {/* Header */}
@@ -270,17 +292,53 @@ export default Profile;
 //         {/* Profile Info */}
 //         <div className="flex flex-col items-center">
 //           <div className="relative group cursor-pointer">
-//             <img 
-//               src={currentUser.avatar} 
-//               className="w-24 h-24 rounded-[2rem] border-4 border-[#1C160E] object-cover shadow-2xl group-hover:opacity-80 transition-opacity" 
-//               alt="profile" 
-//             />
-//             <button className="absolute -bottom-1 -right-1 p-2 bg-[#F57C1F] rounded-lg border-2 border-[#1C160E] shadow-lg">
+//             {isEditing ? (
+//               <input 
+//                 type="text"
+//                 value={editData.avatar}
+//                 onChange={(e) => setEditData({...editData, avatar: e.target.value})}
+//                 className="w-24 h-24 rounded-[2rem] border-4 border-[#1C160E] text-center text-sm object-cover shadow-2xl"
+//                 placeholder="Avatar URL"
+//               />
+//             ) : (
+//               <img 
+//                 src={currentUser.avatar} 
+//                 className="w-24 h-24 rounded-[2rem] border-4 border-[#1C160E] object-cover shadow-2xl group-hover:opacity-80 transition-opacity" 
+//                 alt="profile" 
+//               />
+//             )}
+//             <button 
+//               onClick={() => {
+//                 if (isEditing) handleSave();
+//                 else setIsEditing(true);
+//               }}
+//               className="absolute -bottom-1 -right-1 p-2 bg-[#F57C1F] rounded-lg border-2 border-[#1C160E] shadow-lg"
+//             >
 //               <FiEdit3 size={14} className="text-white" />
 //             </button>
 //           </div>
-//           <h2 className="text-2xl font-black mt-4 tracking-tight">{currentUser.name}</h2>
-//           <p className="text-[#8B7E6F] text-[10px] font-bold uppercase tracking-[0.2em]">{currentUser.email}</p>
+
+//           {isEditing ? (
+//             <>
+//               <input 
+//                 type="text"
+//                 value={editData.name}
+//                 onChange={(e) => setEditData({...editData, name: e.target.value})}
+//                 className="mt-4 text-2xl font-black text-center w-full bg-[#2A1E14] border border-[#3D2C1E] rounded-xl p-2"
+//               />
+//               <input 
+//                 type="email"
+//                 value={editData.email}
+//                 onChange={(e) => setEditData({...editData, email: e.target.value})}
+//                 className="mt-2 text-xs text-center w-full bg-[#2A1E14] border border-[#3D2C1E] rounded-xl p-1"
+//               />
+//             </>
+//           ) : (
+//             <>
+//               <h2 className="text-2xl font-black mt-4 tracking-tight">{currentUser.name}</h2>
+//               <p className="text-[#8B7E6F] text-[10px] font-bold uppercase tracking-[0.2em]">{currentUser.email}</p>
+//             </>
+//           )}
 //         </div>
 //       </div>
 
@@ -299,7 +357,7 @@ export default Profile;
 //         {menuItems.map((item, idx) => (
 //           <div 
 //             key={idx} 
-//             // onClick={() => navigate(item.path)}
+//             onClick={() => navigate(item.path)}
 //             className="group flex items-center justify-between p-5 bg-[#2A1E14] rounded-[2rem] border border-white/5 active:scale-[0.97] transition-all cursor-pointer hover:bg-[#32261a]"
 //           >
 //             <div className="flex items-center gap-4">
@@ -333,3 +391,4 @@ export default Profile;
 // };
 
 // export default Profile;
+
