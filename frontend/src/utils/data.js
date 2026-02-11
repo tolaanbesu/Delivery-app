@@ -99,7 +99,9 @@ export const restaurants = [
     promo: "FREE DELIVERY",
     img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=800",
     address: "Mexico, Addis Ababa",
-    location: { lat: 9.0105, lng: 38.7469 }
+    location: { lat: 9.0105, lng: 38.7469 },
+    phone: "+251 911 111 111",
+    accountno: "1234567890",
   },
   {
     id: 2,
@@ -114,7 +116,9 @@ export const restaurants = [
     promo: "TOP RATED",
     img: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=800",
     address: "Kolfe, Addis Ababa",
-    location: { lat: 9.0326, lng: 38.6936 }
+    location: { lat: 9.0326, lng: 38.6936 },
+    phone: "+251 922 222 222",
+    accountno: "0987654321",
   },
   {
     id: 3,
@@ -128,7 +132,9 @@ export const restaurants = [
     isFeatured: false,
     img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800",
     address: "Piassa, Addis Ababa",
-    location: { lat: 9.0339, lng: 38.7496 }
+    location: { lat: 9.0339, lng: 38.7496 },
+    phone: "+251 933 333 333",
+    accountno: "1122334455",
   },
   {
     id: 4,
@@ -142,7 +148,9 @@ export const restaurants = [
     isFeatured: false,
     img: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?q=80&w=800",
     address: "Kirkos, Addis Ababa",
-    location: { lat: 9.0056, lng: 38.7616 }
+    location: { lat: 9.0056, lng: 38.7616 },
+    phone: "+251 944 444 444",
+    accountno: "5566778899",
   }
 ];
 

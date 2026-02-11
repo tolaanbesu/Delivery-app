@@ -1,4 +1,4 @@
-import { createContext, useReducer } from "react";
+import { createContext, useReducer, useEffect } from "react";
 import { generateAdminDashboardData } from "./adminDashboardData";
 
 
@@ -89,21 +89,28 @@ function reducer(state, action) {
     }
 
     case "UPDATE_ORDER_STATUS": {
-      const orders = state.orders.map(order =>
+      // FIX: Map through orders and update BOTH status and boardStatus
+      const updatedOrders = state.orders.map(order =>
         order.id === action.payload.id
-          ? { ...order, status: action.payload.status }
+          ? { 
+              ...order, 
+              // update status (PAID/COMPLETED) AND boardStatus (New/Prep/Out/Done)
+              status: action.payload.status || order.status,
+              boardStatus: action.payload.boardStatus || order.boardStatus 
+            }
           : order
       );
 
-      const activeOrders = orders.filter(o => o.status === "active");
+      // FIX: Active orders should include anything NOT completed
+      const updatedActive = updatedOrders.filter(o => o.boardStatus !== "Done" && o.status !== "completed");
 
-      localStorage.setItem("orders", JSON.stringify(orders));
-      localStorage.setItem("activeOrders", JSON.stringify(activeOrders));
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      localStorage.setItem("activeOrders", JSON.stringify(updatedActive));
 
       return {
         ...state,
-        orders,
-        activeOrders
+        orders: updatedOrders,
+        activeOrders: updatedActive
       };
     }
 
@@ -155,11 +162,30 @@ function reducer(state, action) {
    PROVIDER
 ====================================================== */
 export const AppProvider = ({ children }) => {
-  const store = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // We add a derived property for the Admin Dashboard so it's always fresh
+  const enhancedState = {
+    ...state,
+    adminDashboardData: generateAdminDashboardData(state.users, state.orders)
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("userToken");
+    const email = localStorage.getItem("loggedInUserEmail");
+
+    if (token && email) {
+      const existingUser = state.users.find(u => u.email === email);
+      if (existingUser) {
+        dispatch({ type: "LOGIN_USER", payload: existingUser });
+      }
+    }
+  }, []);
 
   return (
-    <AppContext.Provider value={store}>
+    <AppContext.Provider value={[enhancedState, dispatch]}>
       {children}
     </AppContext.Provider>
   );
 };
+
