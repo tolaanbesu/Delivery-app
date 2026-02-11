@@ -33,6 +33,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, dispatch] = useContext(AppContext);
+  
 
   // --- FIXED: Find user from State or try multiple localStorage keys to prevent spin ---
   // --- FIXED: Fetch full user object using the email as a key ---
@@ -139,7 +140,9 @@ const Checkout = () => {
       grandTotal,
       itemsCount,
       status: "PAID",
-      createdAt: new Date().toISOString()
+      boardStatus: "New",
+      createdAt: new Date().toISOString(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     dispatch({ type: "PLACE_ORDER", payload: newOrder });
@@ -259,6 +262,29 @@ const Checkout = () => {
              </div>
            ) : (
              <div className="bg-[#2A1E14] rounded-[2rem] p-6 space-y-4 border border-white/5">
+                {/* --- NEW: RESTAURANT PAYMENT INFO BOX --- */}
+                <div className="bg-[#1C160E] p-4 rounded-2xl border border-[#F57C1F]/20 mb-2">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recipient Merchant</span>
+                    <span className="text-[9px] font-black text-[#F57C1F] uppercase tracking-widest">Official</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-bold text-white">
+                      {/* 1. Use state.restaurants (Matches your AppStore key) */}
+                      {state.restaurants?.find(r => r.name === cartData.restaurantName)?.name || cartData.restaurantName}
+                    </h4>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-white tracking-tighter">
+                        {/* 2. Get the phone number from your data */}
+                        {state.restaurants?.find(r => r.name === cartData.restaurantName)?.phone || "No Phone Found"}
+                      </p>
+                      {/* 3. Get the account number from your data */}
+                      <p className="text-[10px] font-bold text-[#F57C1F]">
+                        Acc: {state.restaurants?.find(r => r.name === cartData.restaurantName)?.accountno || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <input required name="phone" value={formData.phone} onChange={handleInputChange} placeholder="telebirr Number" className="w-full bg-[#1C160E] p-4 rounded-xl text-xs outline-none text-white"/>
                 <label className="flex flex-col items-center justify-center bg-[#1C160E] p-5 rounded-xl border border-dashed border-[#3D2C1E] cursor-pointer">
                    <FiCamera className="text-[#F57C1F] mb-2" />

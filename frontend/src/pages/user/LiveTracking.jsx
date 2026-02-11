@@ -23,7 +23,7 @@ const DefaultIcon = L.icon({
 });
 
 const LiveTracking = () => {
-  const [state] = useContext(AppContext);
+  const [state, dispatch] = useContext(AppContext);
   const driverData = state.driver;
   const officeData = state.office;
   const allRestaurants = state.restaurants;
@@ -123,11 +123,24 @@ const LiveTracking = () => {
 
   const handleConfirmDelivery = () => {
     setIsConfirmed(true);
+
     const completedOrder = {
       ...currentOrder,
       status: 'completed',
+      boardStatus: 'Done', // Ensures Admin Board moves it to the 'Done' tab
       completedAt: new Date().toISOString()
     };
+
+    // --- FIX: Update Global Context State ---
+    // This ensures the Admin Dashboard/OrderBoard sees the change immediately
+    dispatch({
+      type: "UPDATE_ORDER_STATUS",
+      payload: { 
+        id: currentOrder.id, 
+        status: 'completed', 
+        boardStatus: 'Done' 
+      }
+    });
 
     // 1. Add to Global History
     const existingHistory = JSON.parse(localStorage.getItem('orderHistory') || '[]');
@@ -150,7 +163,7 @@ const LiveTracking = () => {
         setSelectedOrderId(updatedUserActive[0].id);
         setIsConfirmed(false);
       } else {
-        navigate('/profile'); // Redirect to profile to see completed tab
+        navigate('/profile'); 
       }
     }, 2000);
   };

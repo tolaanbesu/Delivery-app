@@ -1,5 +1,3 @@
-// store/adminDashboardCalculator.js
-
 const now = new Date();
 
 /* =========================
@@ -18,8 +16,15 @@ const sameDay = (a, b) =>
   a.getMonth() === b.getMonth() &&
   a.getFullYear() === b.getFullYear();
 
+// NEW: Growth Calculation Helper
+const calculateGrowth = (current, previous) => {
+  if (previous === 0) return current > 0 ? "+100%" : "+0%";
+  const growth = ((current - previous) / previous) * 100;
+  return `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`;
+};
+
 /* =========================
-   PERIOD FILTER
+   PERIOD FILTERS
 ========================= */
 const filterByPeriod = (items, dateKey, period) => {
   return items.filter(item => {
@@ -38,32 +43,72 @@ const filterByPeriod = (items, dateKey, period) => {
   });
 };
 
+// NEW: Previous Period Filter for Comparison
+const filterByPreviousPeriod = (items, dateKey, period) => {
+  return items.filter(item => {
+    const d = new Date(item[dateKey]);
+    if (period === "Today") {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      return sameDay(d, yesterday);
+    }
+    if (period === "Week") {
+      const startThisWeek = new Date(now);
+      startThisWeek.setDate(now.getDate() - now.getDay());
+      const startLastWeek = new Date(startThisWeek);
+      startLastWeek.setDate(startLastWeek.getDate() - 7);
+      return d >= startLastWeek && d < startThisWeek;
+    }
+    if (period === "Month") {
+      const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      return d.getMonth() === lastMonth && d.getFullYear() === year;
+    }
+    if (period === "Year") return d.getFullYear() === now.getFullYear() - 1;
+    return false;
+  });
+};
+
 /* =========================
    MAIN GENERATOR
 ========================= */
 export const generateAdminDashboardData = (users, orders) => {
   const periods = ["Today", "Week", "Month", "Year"];
-
   const periodStats = {};
 
   periods.forEach(period => {
+    // Current Period Data
     const periodOrders = filterByPeriod(orders, "createdAt", period);
     const periodUsers = filterByPeriod(users, "memberSince", period);
+    
+    // Previous Period Data (for comparison)
+    const prevOrders = filterByPreviousPeriod(orders, "createdAt", period);
+    const prevUsers = filterByPreviousPeriod(users, "memberSince", period);
 
-    const revenue = periodOrders.reduce(
-      (sum, o) => sum + Number(o.total || o.price || 0),
-      0
-    );
+    // Revenue Calculations
+    const currentRevenue = periodOrders.reduce((sum, o) => sum + Number(o.grandTotal || o.total || o.price || 0), 0);
+    const prevRevenue = prevOrders.reduce((sum, o) => sum + Number(o.grandTotal || o.total || o.price || 0), 0);
+
+    // Active Orders Calculation
+    const activeCount = periodOrders.filter(o => 
+      o.status !== "completed" && 
+      o.boardStatus !== "Done"
+    ).length;
+
+    const prevActiveCount = prevOrders.filter(o => 
+      o.status !== "completed" && 
+      o.boardStatus !== "Done"
+    ).length;
 
     periodStats[period] = {
-      totalRevenue: formatMoney(revenue),
-      revenueGrowth: "+0%",
-      activeOrders: periodOrders.filter(o => o.status === "active").length.toString(),
-      activeOrdersGrowth: "+0%",
+      totalRevenue: formatMoney(currentRevenue),
+      revenueGrowth: calculateGrowth(currentRevenue, prevRevenue),
+      activeOrders: activeCount.toString(),
+      activeOrdersGrowth: calculateGrowth(activeCount, prevActiveCount),
       newUsers: periodUsers.length.toString(),
-      newUsersGrowth: "+0%",
-      trendsTotal: formatMoney(revenue * 0.35),
-      trendsGrowth: "+0%"
+      newUsersGrowth: calculateGrowth(periodUsers.length, prevUsers.length),
+      trendsTotal: formatMoney(currentRevenue * 0.35),
+      trendsGrowth: calculateGrowth(currentRevenue, prevRevenue)
     };
   });
 
