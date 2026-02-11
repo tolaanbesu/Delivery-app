@@ -1,4 +1,7 @@
 import React, { useState} from 'react';
+import { useContext } from "react";
+import { AppContext } from "./store/AppStore";
+
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Layout & Shared Components
@@ -40,15 +43,8 @@ const AppContent = () => {
   
   // Manage Auth state
   const [token, setToken] = useState(() => localStorage.getItem('userToken'));
-
-  // Sync state with localStorage
-  // useEffect(() => {
-  //   const handleStorageChange = () => {
-  //     setToken(localStorage.getItem('userToken'));
-  //   };
-  //   window.addEventListener('storage', handleStorageChange);
-  //   return () => window.removeEventListener('storage', handleStorageChange);
-  // }, []);
+  const [state] = useContext(AppContext);
+  const { currentUser } = state;
 
   const hideNavbar = location.pathname.includes('/restaurant/') || 
                     location.pathname === '/checkout' || 
@@ -66,7 +62,15 @@ const AppContent = () => {
           element={<Login setToken={setToken} />} 
         />
         <Route path="/signup" element={<SignUp setToken={setToken}/>} />
-        <Route path="/" element={<LandingPage token={token}/>} />
+        <Route 
+          path="/" 
+          element={
+            currentUser?.role === "admin"
+              ? <Navigate to="/admin/dashboard" replace />
+              : <LandingPage token={token} />
+          } 
+        />
+
         <Route path="/discovery" element={<Discovery />} />
 
         {/* Protected Admin Routes - Passing 'token' as a prop */}

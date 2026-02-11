@@ -11,6 +11,7 @@ import {
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../../store/AppStore';
+import { generateAdminDashboardData } from '../../store/adminDashboardData'; // Ensure path is correct
 
 const AdminDashboard = () => {
   const [activePeriod, setActivePeriod] = useState('Week');
@@ -22,23 +23,23 @@ const AdminDashboard = () => {
 
   /* 🔑 AppStore */
   const [state] = useContext(AppContext);
-  const { adminDashboardData, users } = state;
+  const { users, orders } = state; // Pull raw data directly from state
+
+  // 🔥 LIVE DATA GENERATION
+  // Re-calculates everything whenever 'orders' or 'users' change in the Global Store
+  const adminDashboardData = useMemo(() => {
+    return generateAdminDashboardData(users, orders);
+  }, [users, orders]);
 
   const currentUser = useMemo(() => {
     const savedEmail = localStorage.getItem('loggedInUserEmail');
     if (!savedEmail || !users) return null;
-    
-    // Find the full object from the master list
     return users.find(u => u.email === savedEmail);
   }, [users]);
-
 
   const stats = adminDashboardData.periodStats[activePeriod];
   const chartData = adminDashboardData.charts[activePeriod];
   const { notifications } = adminDashboardData;
-  
-
-
 
   const displayedOrders = showAllTransactions
     ? adminDashboardData.recentOrders
@@ -47,7 +48,7 @@ const AdminDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('loggedInUserEmail');
     localStorage.removeItem('userToken');
-    navigate('/', { replace: true });
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -79,9 +80,9 @@ const AdminDashboard = () => {
             <button onClick={() => setShowProfilePopup(false)}><FiX /></button>
           </div>
           <div className="text-center">
-            <img src={currentUser.avatar} className="w-20 h-20 rounded-full mx-auto border-2 border-[#F57C1F] mb-3" alt="" />
-            <h4 className="font-black text-lg">{currentUser.name}</h4>
-            <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">{currentUser.role}</p>
+            <img src={currentUser?.avatar} className="w-20 h-20 rounded-full mx-auto border-2 border-[#F57C1F] mb-3" alt="" />
+            <h4 className="font-black text-lg">{currentUser?.name}</h4>
+            <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">{currentUser?.role}</p>
           </div>
           <div className="mt-6 space-y-2">
             <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors text-sm">
@@ -119,7 +120,7 @@ const AdminDashboard = () => {
           </button>
           <button onClick={() => { setShowProfilePopup(!showProfilePopup); setShowNotifPopup(false); }}>
             <img 
-              src={currentUser.avatar} 
+              src={currentUser?.avatar} 
               className="w-10 h-10 rounded-full border-2 border-[#F57C1F]/30 object-cover cursor-pointer hover:scale-105 transition-transform" 
               alt="Admin" 
             />
@@ -199,14 +200,14 @@ const AdminDashboard = () => {
         <div className="space-y-4">
           {displayedOrders.map((order) => (
             <div key={order.id} className="bg-[#1C160E] p-5 rounded-[2rem] border border-white/5 flex items-center gap-4 hover:border-[#F57C1F]/30 transition-colors cursor-pointer group">
-              <div className="w-14 h-14 bg-[#2A1E14] rounded-2xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-105 transition-transform">{order.icon}</div>
+              <div className="w-14 h-14 bg-[#2A1E14] rounded-2xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-105 transition-transform">{order.icon || "🛍️"}</div>
               <div className="flex-1">
                 <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-sm text-gray-100 group-hover:text-[#F57C1F] transition-colors">{order.name}</h4>
-                  <span className={`text-sm font-black ${order.status === 'PAID' ? 'text-[#4ADE80]' : 'text-[#F57C1F]'}`}>{order.price}</span>
+                  <h4 className="font-bold text-sm text-gray-100 group-hover:text-[#F57C1F] transition-colors">{order.name || order.restaurantName}</h4>
+                  <span className={`text-sm font-black ${order.status === 'PAID' ? 'text-[#4ADE80]' : 'text-[#F57C1F]'}`}>{order.price || `$${order.grandTotal}`}</span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
-                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Order {order.id} • {order.time}</p>
+                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Order {order.id.toString().slice(-5)} • {order.time}</p>
                   <span className="text-[9px] font-black text-gray-500 tracking-[0.2em]">{order.status}</span>
                 </div>
               </div>

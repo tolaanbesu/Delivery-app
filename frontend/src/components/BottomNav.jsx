@@ -55,7 +55,7 @@ const BottomNav = () => {
     { id: 'menu', icon: <FiLayers />, path: '/admin/menu', label: 'Menu' },
     { id: 'orders', icon: <FiShoppingBag />, path: '/admin/orders', label: 'Live' },
     { id: 'partners', icon: <FiPlusSquare />, path: '/admin/partners', label: 'Add' },
-    { id: 'settings', icon: <FiSettings />, path: '/admin/dashboard', label: 'Set' },
+    // { id: 'settings', icon: <FiSettings />, path: '/admin/dashboard', label: 'Set' },
   ];
 
   // 🔐 Logged-in user email
