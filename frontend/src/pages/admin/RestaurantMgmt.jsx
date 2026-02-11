@@ -193,25 +193,6 @@ const RestaurantMgmt = () => {
         </div>
       </div>
 
-      {/* --- Bottom Navigation --- */}
-      <div className="bg-[#130F0A] border-t border-white/5 px-8 py-4 flex justify-between items-center fixed bottom-0 w-full max-w-md">
-        <div className="flex flex-col items-center gap-1 opacity-40">
-          <FiGrid size={20} />
-          <span className="text-[9px] font-bold">Dashboard</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 opacity-40">
-          <FiFileText size={20} />
-          <span className="text-[9px] font-bold">Orders</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 text-[#F57C1F]">
-          <FiShoppingBag size={20} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Partners</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 opacity-40">
-          <FiSettings size={20} />
-          <span className="text-[9px] font-bold">Settings</span>
-        </div>
-      </div>
     </div>
   );
 };

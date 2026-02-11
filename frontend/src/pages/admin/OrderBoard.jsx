@@ -10,20 +10,29 @@ import { AppContext } from '../../store/AppStore';
 const OrderBoard = () => {
   const [state, dispatch] = useContext(AppContext); // get state from context
 
-  // --- Enhanced Data State ---
-  const [orders, setOrders] = useState(() => {
-    // 2. Changed 'storeState' to 'state' and added fallbacks (|| []) to prevent the .map() crash
-    return (state.recentOrders || []).map((order, index) => {
-      const customer = (state.users || []).find(u => u.id === order.userId) || (state.users?.[0]);
+  // --- FIXED: Drive UI from Global State directly ---
+  const orders = useMemo(() => {
+    // Combine state.orders (live) and state.recentOrders (static/mock) if needed
+    const allOrders = [...(state.orders || []), ...(state.recentOrders || [])];
+    
+    return allOrders.map((order, index) => {
+      const customer = (state.users || []).find(u => u.id === order.ownerId || u.id === order.userId) 
+                       || (state.users?.[0]) 
+                       || { name: 'Guest' };
       
       return {
         ...order,
-        boardStatus: index < 4 ? 'New' : index < 7 ? 'Prep' : index < 9 ? 'Out' : 'Done',
-        customer: customer || { name: 'Guest' },
-        items: ['1x Signature Dish', '1x Side Item', '1x Drink']
+        // Ensure every order has a boardStatus; default to 'New' if it's a live order just placed
+        boardStatus: order.boardStatus || 'New',
+        customer: customer,
+        // Fallback for missing properties in live orders
+        name: order.restaurantName || order.name || 'Order',
+        price: order.grandTotal ? `$${order.grandTotal.toFixed(2)}` : (order.price || '$0.00'),
+        time: order.time || new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        items: order.items || ['Standard Package']
       };
     });
-  });
+  }, [state.orders, state.recentOrders, state.users]);
 
   const [activeTab, setActiveTab] = useState('New');
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,9 +45,9 @@ const OrderBoard = () => {
       const matchesTab = order.boardStatus === activeTab;
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = 
-        order.id.toLowerCase().includes(searchLower) ||
-        order.name.toLowerCase().includes(searchLower) ||
-        order.customer.name.toLowerCase().includes(searchLower);
+        (order.id || "").toLowerCase().includes(searchLower) ||
+        (order.name || "").toLowerCase().includes(searchLower) ||
+        (order.customer.name || "").toLowerCase().includes(searchLower);
       
       return matchesTab && matchesSearch;
     });
@@ -46,11 +55,16 @@ const OrderBoard = () => {
 
   const displayedOrders = showAll ? filteredOrders : filteredOrders.slice(0, 3);
 
-  // --- Handlers ---
+  // --- FIXED: Dispatching to Global Store instead of local state ---
   const moveOrder = (orderId, nextStatus) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId ? { ...order, boardStatus: nextStatus, status: nextStatus === 'Done' ? 'PAID' : 'PENDING' } : order
-    ));
+    dispatch({
+      type: "UPDATE_ORDER_STATUS",
+      payload: { 
+        id: orderId, 
+        boardStatus: nextStatus, 
+        status: nextStatus === 'Done' ? 'PAID' : 'PENDING' 
+      }
+    });
   };
 
   const getCount = (status) => orders.filter(o => o.boardStatus === status).length;
@@ -152,7 +166,7 @@ const OrderBoard = () => {
                   {order.status === 'PENDING' && <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500" />}
                   
                   <div className="flex justify-between items-start mb-1 text-sm">
-                    <span className="text-[#F57C1F] font-black">{order.id} • {order.price}</span>
+                    <span className="text-[#F57C1F] font-black">{order.id?.slice(0,8)} • {order.price}</span>
                     <span className="text-gray-500 font-bold text-[10px] flex items-center gap-1">
                       <FiClock className="text-[12px]" /> {order.time}
                       {order.status === 'PENDING' && <FiAlertCircle className="text-yellow-500 ml-1" />}
@@ -205,8 +219,6 @@ const OrderBoard = () => {
           )}
         </div>
       </div>
-
-      
     </div>
   );
 };
